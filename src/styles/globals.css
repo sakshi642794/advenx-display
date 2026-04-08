@@ -1,0 +1,53 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --clr-bg: #080808;
+  --clr-bg2: #0f0f0f;
+  --clr-bg3: #141414;
+  --clr-border: #1c1c1c;
+  --clr-red: #e8392a;
+  --clr-red-dim: #6b1a12;
+  --clr-red-glow: rgba(232,57,42,0.45);
+  --clr-red-soft: rgba(232,57,42,0.12);
+  --clr-cyan: #00d4f0;
+  --clr-cyan-dim: #004f5e;
+  --clr-cyan-glow: rgba(0,212,240,0.45);
+  --clr-cyan-soft: rgba(0,212,240,0.10);
+  --clr-white: #f0f0f0;
+  --clr-grey: #666;
+  --clr-grey2: #333;
+  --clr-spike: #ff6a00;
+  --clr-spike-glow: rgba(255,106,0,0.5);
+  --clr-spike-soft: rgba(255,106,0,0.10);
+  --font-hud: 'Orbitron', monospace;
+  --font-timer: 'Share Tech Mono', monospace;
+  --font-body: 'Rajdhani', sans-serif;
+}
+
+html, body, #root { width:100%; height:100%; overflow:hidden; background:var(--clr-bg); color:var(--clr-white); font-family:var(--font-body); -webkit-font-smoothing:antialiased; }
+
+body::after {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:9999;
+  background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px);
+}
+
+/* ── Keyframes ── */
+@keyframes fadeIn    { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:none} }
+@keyframes slideUp   { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+@keyframes blink     { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+@keyframes glitch    { 0%,88%,100%{transform:none} 90%{transform:translate(-2px,1px)} 93%{transform:translate(2px,-1px)} 96%{transform:translate(-1px,0)} }
+@keyframes pulseRed  { 0%,100%{opacity:1} 50%{opacity:0.35} }
+@keyframes pulseCyan { 0%,100%{opacity:1} 50%{opacity:0.35} }
+@keyframes ringExpand { 0%{transform:scale(0.6);opacity:0.8} 100%{transform:scale(2.2);opacity:0} }
+@keyframes scanSweep { 0%{transform:translateY(-100%)} 100%{transform:translateY(100vh)} }
+@keyframes crashDown { 0%{opacity:0;transform:translateY(-60px) scaleX(0.8)} 60%{transform:translateY(6px) scaleX(1.02)} 100%{opacity:1;transform:none} }
+@keyframes bracketTL { 0%{top:20px;left:20px;opacity:0} 100%{top:12px;left:12px;opacity:1} }
+@keyframes bracketBR { 0%{bottom:20px;right:20px;opacity:0} 100%{bottom:12px;right:12px;opacity:1} }
+@keyframes timerGlitch { 0%,94%,100%{opacity:1;transform:none} 95%{opacity:0.7;transform:skewX(-2deg) translate(-1px,0)} 97%{opacity:0.9;transform:skewX(1deg) translate(1px,0)} }
+@keyframes spikeBeep { 0%,100%{transform:scale(1);opacity:0.7} 50%{transform:scale(1.08);opacity:1} }
+@keyframes defuseBar { 0%{width:0%} 100%{width:100%} }
+@keyframes winCrash  { 0%{opacity:0;letter-spacing:30px;transform:scale(1.3)} 60%{letter-spacing:6px} 100%{opacity:1;letter-spacing:6px;transform:scale(1)} }
+@keyframes scorePop  { 0%{transform:scale(1)} 30%{transform:scale(1.4)} 100%{transform:scale(1)} }
+@keyframes cardPulseRed  { 0%,100%{border-color:var(--clr-red-dim);box-shadow:none} 50%{border-color:var(--clr-red);box-shadow:0 0 12px var(--clr-red-glow)} }
+@keyframes cardPulseCyan { 0%,100%{border-color:var(--clr-cyan-dim);box-shadow:none} 50%{border-color:var(--clr-cyan);box-shadow:0 0 12px var(--clr-cyan-glow)} }
+@keyframes haloExpand { 0%{transform:scale(1);opacity:0.6} 100%{transform:scale(3);opacity:0} }
