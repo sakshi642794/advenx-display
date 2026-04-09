@@ -1,11 +1,17 @@
-import React from 'react';
-import { GameScreen } from './components/GameScreen';
-import { useGameState } from './hooks/useGameState';
-import { useWebSocket } from './hooks/useWebSocket';
-import './styles/globals.css';
+import React from "react";
+import GameScreen  from "./components/GameScreen";
+import { useGameState } from "./hooks/useGameState";
+import { useWebSocket } from "./hooks/useWebSocket";
+import "./styles/globals.css";
 
 const App: React.FC = () => {
-  const { gameState, isConnected, handleMessage, handleConnect, handleDisconnect } = useGameState();
+  const {
+    gameState,
+    isConnected,
+    handleMessage,
+    handleConnect,
+    handleDisconnect,
+  } = useGameState();
 
   useWebSocket({
     onMessage: handleMessage,
@@ -13,7 +19,12 @@ const App: React.FC = () => {
     onDisconnect: handleDisconnect,
   });
 
-  return <GameScreen gameState={gameState} isConnected={isConnected} />;
+  return (
+    <GameScreen
+      gameState={gameState}
+      isConnected={isConnected}
+    />
+  );
 };
 
 export default App;

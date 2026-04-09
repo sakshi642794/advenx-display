@@ -1,55 +1,63 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { WebSocketMessage } from '../types/game';
+import { useEffect, useRef, useCallback } from "react";
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://raspberrypi.local:8080';
-const RECONNECT_DELAY_MS = 3000;
+const RECONNECT_DELAY_MS = 2000;
 
-interface UseWebSocketOptions {
-  onMessage: (msg: WebSocketMessage) => void;
-  onConnect?: () => void;
-  onDisconnect?: () => void;
-}
-
-export function useWebSocket({ onMessage, onConnect, onDisconnect }: UseWebSocketOptions) {
+export const useWebSocket = ({
+  onMessage,
+  onConnect,
+  onDisconnect,
+}: any) => {
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mountedRef = useRef(true);
+  const reconnectTimerRef = useRef<any>(null);
+  const mountedRef = useRef(false);
+
+  const WS_URL = `ws://${window.location.hostname}:8080`;
 
   const connect = useCallback(() => {
-    if (!mountedRef.current) return;
-
     try {
       const ws = new WebSocket(WS_URL);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('[ADVENX] WebSocket connected to', WS_URL);
-        onConnect?.();
+        console.log("[ADVENX] Connected to engine:", WS_URL);
+        if (onConnect) onConnect();
       };
 
       ws.onmessage = (event) => {
         try {
-          const data: WebSocketMessage = JSON.parse(event.data);
-          onMessage(data);
+          const data = JSON.parse(event.data);
+
+          const mappedEvent = {
+            type: data.type,
+            ...data.payload,
+          };
+
+          if (mappedEvent && typeof onMessage === "function") {
+            onMessage(mappedEvent);
+          }
+
         } catch (err) {
-          console.error('[ADVENX] Failed to parse message:', err);
+          console.error("[ADVENX] Parse error:", err);
         }
       };
 
       ws.onclose = () => {
-        console.warn('[ADVENX] WebSocket disconnected. Reconnecting in', RECONNECT_DELAY_MS, 'ms...');
-        onDisconnect?.();
+        console.warn("[ADVENX] Disconnected. Reconnecting...");
+        if (onDisconnect) onDisconnect();
+
         if (mountedRef.current) {
           reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
         }
       };
 
       ws.onerror = (err) => {
-        console.error('[ADVENX] WebSocket error:', err);
+        console.error("[ADVENX] WS error:", err);
         ws.close();
       };
+
     } catch (err) {
-      console.error('[ADVENX] Failed to create WebSocket:', err);
+      console.error("[ADVENX] WS creation failed:", err);
+
       if (mountedRef.current) {
         reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
       }
@@ -59,10 +67,11 @@ export function useWebSocket({ onMessage, onConnect, onDisconnect }: UseWebSocke
   useEffect(() => {
     mountedRef.current = true;
     connect();
+
     return () => {
       mountedRef.current = false;
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       wsRef.current?.close();
     };
   }, [connect]);
-}
+};

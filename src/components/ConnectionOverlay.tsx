@@ -4,7 +4,7 @@ interface ConnectionOverlayProps {
   isConnected: boolean;
 }
 
-export const ConnectionOverlay: React.FC<ConnectionOverlayProps> = ({ isConnected }) => {
+const ConnectionOverlay: React.FC<ConnectionOverlayProps> = ({ isConnected }) => {
   if (isConnected) return null;
 
   return (
@@ -39,3 +39,4 @@ export const ConnectionOverlay: React.FC<ConnectionOverlayProps> = ({ isConnecte
     </div>
   );
 };
+export default ConnectionOverlay;
