@@ -4,7 +4,7 @@ import { GamePhase } from '../types/game';
 
 interface TeamRowProps { team: 'attacker' | 'defender'; score: number; phase: GamePhase; }
 
-export const TeamRow: React.FC<TeamRowProps> = ({ team, score, phase }) => {
+export const TeamRow: React.FC<TeamRowProps> = ({ team, phase }) => {
   const isAtk  = team === 'attacker';
   const color   = isAtk ? 'var(--clr-red)'     : 'var(--clr-cyan)';
   const dimColor= isAtk ? 'var(--clr-red-dim)' : 'var(--clr-cyan-dim)';

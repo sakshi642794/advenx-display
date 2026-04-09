@@ -9,7 +9,7 @@ type Props = {
   isConnected: boolean;
 };
 
-const GameScreen: React.FC<Props> = ({ gameState, isConnected }) => {
+export const GameScreen: React.FC<Props> = ({ gameState, isConnected }) => {
   const phase = gameState?.phase || "idle";
 
   const ambientColor =
@@ -61,4 +61,4 @@ const GameScreen: React.FC<Props> = ({ gameState, isConnected }) => {
   );
 };
 
-export default GameScreen;
+
