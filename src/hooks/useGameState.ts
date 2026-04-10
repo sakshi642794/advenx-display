@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { GameState, WebSocketMessage } from '../types/game';
+import { GameState, GamePhase, WebSocketMessage } from '../types/game';
 
 const INITIAL_STATE: GameState = {
   phase: 'awaiting',
@@ -7,6 +7,7 @@ const INITIAL_STATE: GameState = {
   totalRounds: 3,
   timeRemaining: 600,
   spikeTimer: 40,
+  defuseTimer: 0,
   endTime: null,
   spikeEndTime: null,
   clockOffset: 0,
@@ -15,6 +16,9 @@ const INITIAL_STATE: GameState = {
   defendersScore: 0,
   attackersReady: false,
   defendersReady: false,
+  roundTotal: null,
+  spikeTotal: null,
+  defuseTotal: null,
 };
 
 export function useGameState() {
@@ -23,7 +27,7 @@ export function useGameState() {
   // Keep offset in a ref so the interval always reads the latest value
   const offsetRef = useRef(0);
 
-  // ── Local timer loop — runs every 200ms, no backend dependency ──
+  // -- Local timer loop - runs every 200ms, no backend dependency --
   useEffect(() => {
     const interval = setInterval(() => {
       setGameState(prev => {
@@ -54,7 +58,7 @@ export function useGameState() {
     }, 200);
 
     return () => clearInterval(interval);
-  }, []); // runs once — interval always reads latest state via setter callback
+  }, []); // runs once - interval always reads latest state via setter callback
 
   const handleMessage = useCallback((msg: WebSocketMessage) => {
     const { event, payload } = msg;
@@ -66,7 +70,7 @@ export function useGameState() {
 
       switch (event) {
 
-        // ── Server clock sync (optional but recommended) ──
+        // -- Server clock sync (optional but recommended) --
         case 'sync': {
           if (payload?.serverTime) {
             const offset = payload.serverTime - Date.now();
@@ -74,6 +78,51 @@ export function useGameState() {
             return { ...prev, clockOffset: offset };
           }
           return prev;
+        }
+
+        case 'game_update': {
+          const state = payload?.state;
+          const roundRemaining = payload?.roundRemaining;
+          const spikeRemaining = payload?.spikeRemaining;
+          const defuseRemaining = payload?.defuseRemaining;
+          const roundTotal = payload?.roundTotal ?? null;
+          const spikeTotal = payload?.spikeTotal ?? null;
+          const defuseTotal = payload?.defuseTotal ?? null;
+
+          const phaseMap: Record<string, GamePhase> = {
+            IDLE: 'awaiting',
+            ROUND_RUNNING: 'round_active',
+            PLANTING: 'spike_planting',
+            SPIKE_PLANTED: 'spike_planted',
+            DEFUSING: 'defusing',
+            ROUND_ENDED: 'round_over',
+          };
+
+          const nextPhase = state && phaseMap[state] ? phaseMap[state] : prev.phase;
+
+          return {
+            ...prev,
+            phase: nextPhase,
+            timeRemaining: typeof roundRemaining === 'number' ? roundRemaining : prev.timeRemaining,
+            spikeTimer: typeof spikeRemaining === 'number' ? spikeRemaining : prev.spikeTimer,
+            defuseTimer: typeof defuseRemaining === 'number' ? defuseRemaining : prev.defuseTimer,
+            endTime: null,
+            spikeEndTime: null,
+            roundTotal,
+            spikeTotal,
+            defuseTotal,
+            statusMessage: nextPhase === 'round_active'
+              ? 'ROUND IN PROGRESS'
+              : nextPhase === 'spike_planting'
+                ? 'SPIKE PLANTING...'
+                : nextPhase === 'spike_planted'
+                  ? 'SPIKE PLANTED'
+                  : nextPhase === 'defusing'
+                    ? 'DEFUSING...'
+                    : nextPhase === 'round_over'
+                      ? 'ROUND ENDED'
+                      : 'AWAITING TEAMS',
+          };
         }
 
         case 'round_started':
@@ -94,7 +143,7 @@ export function useGameState() {
             ...prev,
             phase: 'spike_planting',
             statusMessage: 'SPIKE PLANTING...',
-            // round timer pauses visually — we just stop updating endTime
+            // round timer pauses visually - we just stop updating endTime
             endTime: null,
           };
 
@@ -130,6 +179,7 @@ export function useGameState() {
             ...prev,
             phase: 'spike_planted',
             statusMessage: 'SPIKE PLANTED',
+            defuseTimer: 0,
           };
 
         case 'defuse_success':
@@ -138,6 +188,7 @@ export function useGameState() {
             phase: 'round_over',
             statusMessage: 'SPIKE DEFUSED',
             spikeEndTime: null,
+            defuseTimer: 0,
           };
 
         case 'round_end':
@@ -147,6 +198,7 @@ export function useGameState() {
             statusMessage: 'ROUND ENDED',
             endTime: null,
             spikeEndTime: null,
+            defuseTimer: 0,
           };
 
         case 'attackers_win':
@@ -157,6 +209,7 @@ export function useGameState() {
             endTime: null,
             spikeEndTime: null,
             attackersScore: prev.attackersScore + 1,
+            defuseTimer: 0,
           };
 
         case 'defenders_win':
@@ -167,7 +220,18 @@ export function useGameState() {
             endTime: null,
             spikeEndTime: null,
             defendersScore: prev.defendersScore + 1,
+            defuseTimer: 0,
           };
+
+        case 'attackers_ready':
+          return { ...prev, attackersReady: true };
+
+        case 'defenders_ready':
+          return { ...prev, defendersReady: true };
+
+        case 'reset_game':
+          offsetRef.current = 0;
+          return INITIAL_STATE;
 
         default:
           return prev;
@@ -197,3 +261,5 @@ export function useGameState() {
     markAttackersReady, markDefendersReady, resetGame,
   };
 }
+
+

@@ -6,15 +6,21 @@ import { WinScreen } from './WinScreen';
 
 interface StatusDisplayProps {
   phase: GamePhase; statusMessage: string;
-  timeRemaining: number; spikeTimer: number;
+  timeRemaining: number; spikeTimer: number; defuseTimer: number;
+  roundTotal: number | null; spikeTotal: number | null; defuseTotal: number | null;
 }
 
-export const StatusDisplay: React.FC<StatusDisplayProps> = ({ phase, statusMessage, timeRemaining, spikeTimer }) => {
+export const StatusDisplay: React.FC<StatusDisplayProps> = ({
+  phase, statusMessage, timeRemaining, spikeTimer, defuseTimer, roundTotal, spikeTotal, defuseTotal,
+}) => {
   const isWin   = phase === 'attackers_win' || phase === 'defenders_win';
   const showTimer = ['round_active','spike_planted','defusing'].includes(phase);
   const showSpike = ['spike_planting','spike_planted','defusing'].includes(phase);
   const isDefusing= phase === 'defusing';
   const isAwaiting= phase === 'awaiting';
+  const defuseProgress = defuseTotal
+    ? Math.max(0, Math.min(1, (defuseTotal - defuseTimer) / defuseTotal))
+    : 0;
 
   const statusColor =
     phase === 'attackers_win'  ? 'var(--clr-red)'
@@ -56,7 +62,15 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({ phase, statusMessa
 
           {/* Timer ring */}
           {showTimer && (
-            <TimerDisplay phase={phase} timeRemaining={timeRemaining} spikeTimer={spikeTimer} />
+            <TimerDisplay
+              phase={phase}
+              timeRemaining={timeRemaining}
+              spikeTimer={spikeTimer}
+              defuseTimer={defuseTimer}
+              roundTotal={roundTotal}
+              spikeTotal={spikeTotal}
+              defuseTotal={defuseTotal}
+            />
           )}
 
           {/* Defuse bar */}
@@ -67,9 +81,11 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({ phase, statusMessa
               </div>
               <div style={{ height:'3px', background:'var(--clr-grey2)', position:'relative', overflow:'hidden' }}>
                 <div style={{
-                  position:'absolute', inset:0, background:'var(--clr-cyan)',
+                  position:'absolute', left:0, top:0, bottom:0,
+                  width: `${defuseProgress * 100}%`,
+                  background:'var(--clr-cyan)',
                   boxShadow:'0 0 10px var(--clr-cyan-glow)',
-                  animation:'defuseBar 5s linear forwards',
+                  transition:'width 0.2s linear',
                 }}/>
               </div>
             </div>

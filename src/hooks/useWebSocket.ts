@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { WebSocketMessage, OperatorMessage } from '../types/game';
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://raspberrypi.local:8080';
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080';
 const RECONNECT_DELAY_MS = 3000;
 
 interface UseWebSocketOptions {
@@ -20,7 +20,7 @@ export function useWebSocket({ onMessage, onConnect, onDisconnect }: UseWebSocke
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(msg));
     } else {
-      console.warn('[ADVENX] Cannot send — WebSocket not open');
+      console.warn('[ADVENX] Cannot send - WebSocket not open');
     }
   }, []);
 
@@ -76,3 +76,4 @@ export function useWebSocket({ onMessage, onConnect, onDisconnect }: UseWebSocke
 
   return { send };
 }
+

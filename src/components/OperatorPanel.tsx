@@ -52,17 +52,17 @@ export const OperatorPanel: React.FC<OperatorPanelProps> = ({
 
   return (
     <>
-      {/* ── Hidden corner trigger (bottom-right, 60×60px invisible zone) ── */}
+      {/* -- Hidden corner trigger (bottom-right, 60x60px invisible zone) -- */}
       <div
         onClick={handleCornerTap}
         style={{
           position: 'fixed', bottom: 0, right: 0,
           width: '60px', height: '60px',
           zIndex: 200, cursor: 'default',
-          // Subtle visual hint only when panel is closed — tiny dot
+          // Subtle visual hint only when panel is closed - tiny dot
         }}
       >
-        {/* Micro dot hint — barely visible */}
+        {/* Micro dot hint - barely visible */}
         <div style={{
           position: 'absolute', bottom: '8px', right: '8px',
           width: '4px', height: '4px', borderRadius: '50%',
@@ -72,7 +72,7 @@ export const OperatorPanel: React.FC<OperatorPanelProps> = ({
         }} />
       </div>
 
-      {/* ── Slide-up panel ── */}
+      {/* -- Slide-up panel -- */}
       <div style={{
         position: 'fixed', bottom: 0, right: 0,
         width: '300px',
@@ -106,7 +106,7 @@ export const OperatorPanel: React.FC<OperatorPanelProps> = ({
         {/* Divider */}
         <div style={{ height: '1px', background: '#1c1c1c', marginBottom: '20px' }} />
 
-        {/* Ready buttons — only shown in awaiting/round_over */}
+        {/* Ready buttons - only shown in awaiting/round_over */}
         {isAwaiting && (
           <>
             <div style={{ fontFamily: 'var(--font-hud)', fontSize: '9px', letterSpacing: '3px', color: '#444', marginBottom: '12px' }}>
@@ -158,7 +158,7 @@ export const OperatorPanel: React.FC<OperatorPanelProps> = ({
             {/* Divider */}
             <div style={{ height: '1px', background: '#1c1c1c', marginBottom: '16px' }} />
 
-            {/* Start game button — only active when both ready */}
+            {/* Start game button - only active when both ready */}
             <button
               onClick={handleStartGame}
               disabled={!bothReady || !isConnected}
@@ -188,7 +188,7 @@ export const OperatorPanel: React.FC<OperatorPanelProps> = ({
           </>
         )}
 
-        {/* Reset — always available */}
+        {/* Reset - always available */}
         <button
           onClick={handleReset}
           style={{
@@ -218,7 +218,7 @@ export const OperatorPanel: React.FC<OperatorPanelProps> = ({
             fontFamily: 'var(--font-hud)', fontSize: '9px',
             letterSpacing: '2px', color: '#444', textAlign: 'center',
           }}>
-            GAME IN PROGRESS — {gameState.phase.toUpperCase().replace('_', ' ')}
+            GAME IN PROGRESS - {gameState.phase.toUpperCase().replace(/_/g, ' ')}
           </div>
         )}
 
@@ -230,7 +230,7 @@ export const OperatorPanel: React.FC<OperatorPanelProps> = ({
         )}
       </div>
 
-      {/* ── Awaiting screen overlay — show ready status on main display ── */}
+      {/* -- Awaiting screen overlay - show ready status on main display -- */}
       {gameState.phase === 'awaiting' && (gameState.attackersReady || gameState.defendersReady) && (
         <div style={{
           position: 'fixed', top: '50%', left: '50%',
@@ -259,7 +259,7 @@ export const OperatorPanel: React.FC<OperatorPanelProps> = ({
   );
 };
 
-/* ── Sub-components ── */
+/* -- Sub-components -- */
 
 const ReadyBadge: React.FC<{ ready: boolean; color: 'red' | 'cyan' }> = ({ ready, color }) => (
   <div style={{
@@ -313,3 +313,4 @@ const TeamReadyPill: React.FC<{ label: string; ready: boolean; color: 'red' | 'c
     </div>
   );
 };
+

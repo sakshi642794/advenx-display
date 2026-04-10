@@ -49,6 +49,10 @@ export const GameScreen: React.FC<Props> = ({ gameState, isConnected }) => {
         statusMessage={gameState.statusMessage}
         timeRemaining={gameState.timeRemaining}
         spikeTimer={gameState.spikeTimer}
+        defuseTimer={gameState.defuseTimer}
+        roundTotal={gameState.roundTotal}
+        spikeTotal={gameState.spikeTotal}
+        defuseTotal={gameState.defuseTotal}
       />
 
       <TeamRow team="attacker" score={gameState.attackersScore} phase={phase} />

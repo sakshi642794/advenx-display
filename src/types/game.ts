@@ -1,4 +1,5 @@
 export type GameEvent =
+  | 'game_update'
   | 'round_started'
   | 'spike_planting'
   | 'plant_canceled'
@@ -10,12 +11,19 @@ export type GameEvent =
   | 'round_end'
   | 'attackers_win'
   | 'defenders_win'
+  | 'attackers_ready'
+  | 'defenders_ready'
+  | 'reset_game'
   | 'sync';
 
 export type OperatorEvent =
   | 'attackers_ready'
   | 'defenders_ready'
   | 'start_game'
+  | 'start_plant'
+  | 'cancel_plant'
+  | 'start_defuse'
+  | 'cancel_defuse'
   | 'reset_game';
 
 export type GamePhase =
@@ -33,8 +41,15 @@ export interface WebSocketMessage {
   payload?: {
     round?: number;
     total_rounds?: number;
-    endTime?: number;       // Unix ms timestamp — used for all timers
+    endTime?: number;       // Unix ms timestamp - used for all timers
     serverTime?: number;    // For clock sync
+    state?: string;         // Engine state (game_update)
+    roundRemaining?: number | null;
+    spikeRemaining?: number | null;
+    defuseRemaining?: number | null;
+    roundTotal?: number | null;
+    spikeTotal?: number | null;
+    defuseTotal?: number | null;
   };
 }
 
@@ -49,6 +64,7 @@ export interface GameState {
   totalRounds: number;
   timeRemaining: number;
   spikeTimer: number;
+  defuseTimer: number;
   endTime: number | null;       // active countdown end timestamp (ms)
   spikeEndTime: number | null;  // spike detonation end timestamp (ms)
   clockOffset: number;          // ms offset vs server clock (for sync)
@@ -57,4 +73,8 @@ export interface GameState {
   defendersScore: number;
   attackersReady: boolean;
   defendersReady: boolean;
+  roundTotal: number | null;
+  spikeTotal: number | null;
+  defuseTotal: number | null;
 }
+

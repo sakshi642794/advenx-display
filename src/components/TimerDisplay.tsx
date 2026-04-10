@@ -5,6 +5,10 @@ interface TimerDisplayProps {
   phase: GamePhase;
   timeRemaining: number;
   spikeTimer: number;
+  defuseTimer: number;
+  roundTotal: number | null;
+  spikeTotal: number | null;
+  defuseTotal: number | null;
 }
 
 function fmt(s: number) {
@@ -12,10 +16,18 @@ function fmt(s: number) {
   return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
-export const TimerDisplay: React.FC<TimerDisplayProps> = ({ phase, timeRemaining, spikeTimer }) => {
-  const isSpikeActive = phase === 'spike_planted' || phase === 'defusing';
-  const current  = isSpikeActive ? spikeTimer : timeRemaining;
-  const total    = isSpikeActive ? 40 : 600;
+export const TimerDisplay: React.FC<TimerDisplayProps> = ({
+  phase, timeRemaining, spikeTimer, defuseTimer, roundTotal, spikeTotal, defuseTotal,
+}) => {
+  const isDefusing = phase === 'defusing';
+  const isSpikeActive = phase === 'spike_planted' || isDefusing;
+  const current  = isDefusing ? defuseTimer : isSpikeActive ? spikeTimer : timeRemaining;
+  const totalRaw = isDefusing
+    ? defuseTotal
+    : isSpikeActive
+      ? spikeTotal
+      : roundTotal;
+  const total = Math.max(1, typeof totalRaw === 'number' ? totalRaw : current);
   const progress = Math.max(0, Math.min(1, current / total));
   const isLow    = isSpikeActive ? current <= 10 : current <= 60;
   const isMid    = !isLow && (isSpikeActive ? current <= 20 : current <= 120);
