@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { GameState, OperatorMessage } from '../types/game';
 
 interface OperatorPanelProps {
@@ -13,22 +13,10 @@ interface OperatorPanelProps {
 export const OperatorPanel: React.FC<OperatorPanelProps> = ({
   gameState, isConnected, onSend, onAttackersReady, onDefendersReady, onReset,
 }) => {
-  const [open, setOpen] = useState(false);
-  const [tapCount, setTapCount] = useState(0);
-  const [lastTap, setLastTap] = useState(0);
-
-  // Triple-tap the hidden corner zone to open
-  const handleCornerTap = useCallback(() => {
-    const now = Date.now();
-    const count = now - lastTap < 600 ? tapCount + 1 : 1;
-    setTapCount(count);
-    setLastTap(now);
-    if (count >= 3) { setOpen(o => !o); setTapCount(0); }
-  }, [tapCount, lastTap]);
+  const isAwaiting = gameState.phase === 'awaiting' || gameState.phase === 'round_over';
+  const open = isAwaiting;
 
   const bothReady = gameState.attackersReady && gameState.defendersReady;
-  const isAwaiting = gameState.phase === 'awaiting' || gameState.phase === 'round_over';
-
   const handleAttackersReady = () => {
     onAttackersReady();
     onSend({ event: 'attackers_ready' });
@@ -41,37 +29,15 @@ export const OperatorPanel: React.FC<OperatorPanelProps> = ({
 
   const handleStartGame = () => {
     onSend({ event: 'start_game' });
-    setOpen(false);
   };
 
   const handleReset = () => {
     onReset();
     onSend({ event: 'reset_game' });
-    setOpen(false);
   };
 
   return (
     <>
-      {/* -- Hidden corner trigger (bottom-right, 60x60px invisible zone) -- */}
-      <div
-        onClick={handleCornerTap}
-        style={{
-          position: 'fixed', bottom: 0, right: 0,
-          width: '60px', height: '60px',
-          zIndex: 200, cursor: 'default',
-          // Subtle visual hint only when panel is closed - tiny dot
-        }}
-      >
-        {/* Micro dot hint - barely visible */}
-        <div style={{
-          position: 'absolute', bottom: '8px', right: '8px',
-          width: '4px', height: '4px', borderRadius: '50%',
-          background: open ? 'var(--clr-red)' : 'rgba(255,255,255,0.08)',
-          transition: 'background 0.3s ease',
-          boxShadow: open ? '0 0 6px var(--clr-red-glow)' : 'none',
-        }} />
-      </div>
-
       {/* -- Slide-up panel -- */}
       <div style={{
         position: 'fixed', bottom: 0, right: 0,
@@ -222,12 +188,7 @@ export const OperatorPanel: React.FC<OperatorPanelProps> = ({
           </div>
         )}
 
-        {/* Awaiting message on display */}
-        {isAwaiting && (
-          <div style={{ marginTop: '16px', fontFamily: 'var(--font-hud)', fontSize: '9px', letterSpacing: '2px', color: '#2a2a2a', textAlign: 'center' }}>
-            TRIPLE-TAP CORNER TO CLOSE
-          </div>
-        )}
+        {/* Auto-hidden during live rounds */}
       </div>
 
       {/* -- Awaiting screen overlay - show ready status on main display -- */}
