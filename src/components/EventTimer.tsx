@@ -4,7 +4,6 @@ import { GamePhase } from '../types/game';
 interface EventTimerProps {
   phase: GamePhase;
   spikeTimer: number;
-  timeRemaining: number;
 }
 
 function fmt(s: number) {
@@ -59,7 +58,7 @@ const DrainRing: React.FC<{ progress: number; color: string; size: number; isLow
   );
 };
 
-export const EventTimer: React.FC<EventTimerProps> = ({ phase, spikeTimer, timeRemaining }) => {
+export const EventTimer: React.FC<EventTimerProps> = ({ phase, spikeTimer }) => {
   const RING_SIZE = 180;
 
   if (phase === 'spike_planting') {

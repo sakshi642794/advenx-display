@@ -2,7 +2,7 @@ import React from 'react';
 import { Header } from './Header';
 import { StatusDisplay } from './StatusDisplay';
 import { TeamRow } from './TeamRow';
-import { ConnectionOverlay } from './ConnectionOverlay';
+import ConnectionOverlay from './ConnectionOverlay';
 import { HudBrackets } from './HudBrackets';
 import { GameState } from '../types/game';
 

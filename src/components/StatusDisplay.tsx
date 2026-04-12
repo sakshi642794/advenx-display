@@ -150,7 +150,6 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
               <EventTimer
                 phase={phase}
                 spikeTimer={spikeTimer}
-                timeRemaining={timeRemaining}
               />
 
               {/* Main round timer — secondary, dimmed, small */}
