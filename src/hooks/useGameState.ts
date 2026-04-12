@@ -10,6 +10,8 @@ const INITIAL_STATE: GameState = {
   defuseTimer: 0,
   endTime: null,
   spikeEndTime: null,
+  roundStartEndTime: null,
+  roundStartRemaining: 0,
   clockOffset: 0,
   statusMessage: 'AWAITING TEAMS',
   attackersScore: 0,
@@ -53,6 +55,15 @@ export function useGameState() {
           }
         }
 
+        // Round start countdown
+        if (prev.roundStartEndTime !== null) {
+          const remaining = Math.max(0, Math.ceil((prev.roundStartEndTime - now) / 1000));
+          if (remaining !== prev.roundStartRemaining) {
+            updated.roundStartRemaining = remaining;
+            changed = true;
+          }
+        }
+
         return changed ? updated : prev;
       });
     }, 200);
@@ -64,8 +75,8 @@ export function useGameState() {
     const { event, payload } = msg;
 
     setGameState(prev => {
-      const round       = payload?.round        ?? prev.currentRound;
-      const totalRounds = payload?.total_rounds ?? prev.totalRounds;
+      const round       = payload?.round ?? payload?.currentRound ?? prev.currentRound;
+      const totalRounds = payload?.total_rounds ?? payload?.totalRounds ?? prev.totalRounds;
       const endTime     = payload?.endTime      ?? null;
 
       switch (event) {
@@ -88,6 +99,8 @@ export function useGameState() {
           const roundTotal = payload?.roundTotal ?? null;
           const spikeTotal = payload?.spikeTotal ?? null;
           const defuseTotal = payload?.defuseTotal ?? null;
+          const attackersScore = typeof payload?.attackersScore === 'number' ? payload?.attackersScore : prev.attackersScore;
+          const defendersScore = typeof payload?.defendersScore === 'number' ? payload?.defendersScore : prev.defendersScore;
 
           const phaseMap: Record<string, GamePhase> = {
             IDLE: 'awaiting',
@@ -103,14 +116,20 @@ export function useGameState() {
           return {
             ...prev,
             phase: nextPhase,
+            currentRound: round,
+            totalRounds,
             timeRemaining: typeof roundRemaining === 'number' ? roundRemaining : prev.timeRemaining,
             spikeTimer: typeof spikeRemaining === 'number' ? spikeRemaining : prev.spikeTimer,
             defuseTimer: typeof defuseRemaining === 'number' ? defuseRemaining : prev.defuseTimer,
             endTime: null,
             spikeEndTime: null,
+            roundStartEndTime: null,
+            roundStartRemaining: 0,
             roundTotal,
             spikeTotal,
             defuseTotal,
+            attackersScore,
+            defendersScore,
             statusMessage: nextPhase === 'round_active'
               ? 'ROUND IN PROGRESS'
               : nextPhase === 'spike_planting'
@@ -125,6 +144,15 @@ export function useGameState() {
           };
         }
 
+        case 'round_starting':
+          return {
+            ...prev,
+            phase: 'round_starting',
+            statusMessage: 'ROUND STARTING',
+            roundStartEndTime: endTime ?? (Date.now() + 3000),
+            roundStartRemaining: payload?.seconds ?? 3,
+          };
+
         case 'round_started':
           return {
             ...prev,
@@ -133,6 +161,8 @@ export function useGameState() {
             totalRounds,
             endTime,                    // store server-provided endTime
             spikeEndTime: null,
+            roundStartEndTime: null,
+            roundStartRemaining: 0,
             statusMessage: 'ROUND IN PROGRESS',
             attackersReady: false,
             defendersReady: false,
@@ -171,6 +201,7 @@ export function useGameState() {
             ...prev,
             phase: 'defusing',
             statusMessage: 'DEFUSING...',
+            spikeEndTime: null,
             // spikeEndTime keeps counting during defuse attempt
           };
 
@@ -179,6 +210,7 @@ export function useGameState() {
             ...prev,
             phase: 'spike_planted',
             statusMessage: 'SPIKE PLANTED',
+            spikeEndTime: endTime ?? prev.spikeEndTime,
             defuseTimer: 0,
           };
 
@@ -198,7 +230,11 @@ export function useGameState() {
             statusMessage: 'ROUND ENDED',
             endTime: null,
             spikeEndTime: null,
+            roundStartEndTime: null,
+            roundStartRemaining: 0,
             defuseTimer: 0,
+            attackersReady: false,
+            defendersReady: false,
           };
 
         case 'attackers_win':
@@ -208,8 +244,13 @@ export function useGameState() {
             statusMessage: 'ATTACKERS WIN',
             endTime: null,
             spikeEndTime: null,
-            attackersScore: prev.attackersScore + 1,
+            roundStartEndTime: null,
+            roundStartRemaining: 0,
+            attackersScore: typeof payload?.attackersScore === 'number' ? payload.attackersScore : prev.attackersScore + 1,
+            defendersScore: typeof payload?.defendersScore === 'number' ? payload.defendersScore : prev.defendersScore,
             defuseTimer: 0,
+            attackersReady: false,
+            defendersReady: false,
           };
 
         case 'defenders_win':
@@ -219,8 +260,13 @@ export function useGameState() {
             statusMessage: 'DEFENDERS WIN',
             endTime: null,
             spikeEndTime: null,
-            defendersScore: prev.defendersScore + 1,
+            roundStartEndTime: null,
+            roundStartRemaining: 0,
+            attackersScore: typeof payload?.attackersScore === 'number' ? payload.attackersScore : prev.attackersScore,
+            defendersScore: typeof payload?.defendersScore === 'number' ? payload.defendersScore : prev.defendersScore + 1,
             defuseTimer: 0,
+            attackersReady: false,
+            defendersReady: false,
           };
 
         case 'attackers_ready':

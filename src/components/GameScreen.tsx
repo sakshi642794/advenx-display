@@ -43,6 +43,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameState, isConnected }
           statusMessage={gameState.statusMessage}
           timeRemaining={gameState.timeRemaining}
           spikeTimer={gameState.spikeTimer}
+          roundStartRemaining={gameState.roundStartRemaining}
         />
       </div>
 

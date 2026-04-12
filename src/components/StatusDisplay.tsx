@@ -9,6 +9,7 @@ interface StatusDisplayProps {
   statusMessage: string;
   timeRemaining: number;
   spikeTimer: number;
+  roundStartRemaining: number;
 }
 
 // Phases where main round timer shrinks but stays visible
@@ -17,10 +18,11 @@ const SECONDARY_TIMER_PHASES: GamePhase[] = ['spike_planting', 'spike_planted', 
 const PRIMARY_TIMER_PHASES:   GamePhase[] = ['round_active'];
 
 export const StatusDisplay: React.FC<StatusDisplayProps> = ({
-  phase, statusMessage, timeRemaining, spikeTimer,
+  phase, statusMessage, timeRemaining, spikeTimer, roundStartRemaining,
 }) => {
   const isWin        = phase === 'attackers_win' || phase === 'defenders_win';
   const isAwaiting   = phase === 'awaiting';
+  const isStarting   = phase === 'round_starting';
   const isRoundOver  = phase === 'round_over';
   const showMainBig  = PRIMARY_TIMER_PHASES.includes(phase);
   const showMainSmall= SECONDARY_TIMER_PHASES.includes(phase);
@@ -54,7 +56,7 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
       {!isWin && (
         <>
           {/* Status label */}
-          {!isAwaiting && (
+          {!isAwaiting && !isStarting && (
             <div style={{
               fontFamily: 'var(--font-hud)',
               fontSize: 'clamp(11px, 2vw, 22px)',
@@ -84,6 +86,33 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
                 fontFamily: 'var(--font-timer)', fontSize: 'clamp(22px, 4vw, 36px)',
                 color: 'var(--clr-red)', animation: 'blink 1.2s step-end infinite',
               }}>_</div>
+            </div>
+          )}
+
+          {/* ROUND STARTING state */}
+          {isStarting && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'clamp(10px, 2vh, 18px)' }}>
+              <div style={{
+                fontFamily: 'var(--font-hud)',
+                fontSize: 'clamp(18px, 3.5vw, 40px)',
+                fontWeight: 700,
+                letterSpacing: 'clamp(4px, 1vw, 8px)',
+                color: 'var(--clr-white)',
+                textAlign: 'center',
+              }}>
+                ROUND STARTING
+              </div>
+              <div style={{
+                fontFamily: 'var(--font-timer)',
+                fontSize: 'clamp(64px, 12vw, 140px)',
+                color: 'var(--clr-white)',
+                textShadow: '0 0 30px rgba(255,255,255,0.35)',
+                letterSpacing: 'clamp(4px, 1vw, 10px)',
+                lineHeight: 1,
+                animation: 'timerGlitch 0.8s infinite',
+              }}>
+                {Math.max(0, roundStartRemaining)}
+              </div>
             </div>
           )}
 

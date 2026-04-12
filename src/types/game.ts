@@ -1,5 +1,6 @@
 export type GameEvent =
   | 'game_update'
+  | 'round_starting'
   | 'round_started'
   | 'spike_planting'
   | 'plant_canceled'
@@ -28,6 +29,7 @@ export type OperatorEvent =
 
 export type GamePhase =
   | 'awaiting'
+  | 'round_starting'
   | 'round_active'
   | 'spike_planting'
   | 'spike_planted'
@@ -41,7 +43,10 @@ export interface WebSocketMessage {
   payload?: {
     round?: number;
     total_rounds?: number;
+    currentRound?: number;
+    totalRounds?: number;
     endTime?: number;       // Unix ms timestamp - used for all timers
+    seconds?: number;       // round start countdown seconds
     serverTime?: number;    // For clock sync
     state?: string;         // Engine state (game_update)
     roundRemaining?: number | null;
@@ -50,6 +55,8 @@ export interface WebSocketMessage {
     roundTotal?: number | null;
     spikeTotal?: number | null;
     defuseTotal?: number | null;
+    attackersScore?: number;
+    defendersScore?: number;
   };
 }
 
@@ -67,6 +74,8 @@ export interface GameState {
   defuseTimer: number;
   endTime: number | null;       // active countdown end timestamp (ms)
   spikeEndTime: number | null;  // spike detonation end timestamp (ms)
+  roundStartEndTime: number | null;
+  roundStartRemaining: number;
   clockOffset: number;          // ms offset vs server clock (for sync)
   statusMessage: string;
   attackersScore: number;
