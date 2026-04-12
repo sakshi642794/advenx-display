@@ -82,6 +82,7 @@ export const EventTimer: React.FC<EventTimerProps> = ({
         {/* Plant timer ring with spike icon */}
         <div style={{ position: 'relative', width: RING_SIZE, height: RING_SIZE, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <DrainRing progress={progress} color="#ff6a00" size={RING_SIZE} isLow={isLow} />
+          <SpinRing color="#ff6a00" size={RING_SIZE} />
           {/* Spike hex icon */}
           <div style={{ animation: 'spikeBeep 1s ease-in-out infinite', zIndex: 1 }}>
             <svg width="60" height="60" viewBox="0 0 60 60">
@@ -132,6 +133,7 @@ export const EventTimer: React.FC<EventTimerProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'clamp(6px, 1.5vh, 12px)' }}>
         <div style={{ position: 'relative', width: RING_SIZE, height: RING_SIZE, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <DrainRing progress={progress} color={rawColor} size={RING_SIZE} isLow={isLow} />
+          {isDefuse && <SpinRing color="#00d4f0" size={RING_SIZE} />}
 
           {/* Defusing spinner overlay on top of drain ring */}
           {isDefuse && (
