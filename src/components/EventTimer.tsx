@@ -85,7 +85,7 @@ export const EventTimer: React.FC<EventTimerProps> = ({
           <SpinRing color="#ff6a00" size={RING_SIZE} />
           {/* Spike hex icon */}
           <div style={{ animation: 'spikeBeep 1s ease-in-out infinite', zIndex: 1 }}>
-            <svg width="60" height="60" viewBox="0 0 60 60">
+            <svg width="58" height="58" viewBox="0 0 60 60">
               <polygon points="30,5 55,17.5 55,42.5 30,55 5,42.5 5,17.5" fill="rgba(255,106,0,0.1)" stroke="#ff6a00" strokeWidth="1.5"/>
               <polygon points="30,14 46,23 46,37 30,46 14,37 14,23" fill="rgba(255,106,0,0.15)" stroke="#ff6a00" strokeWidth="1"/>
               <circle cx="30" cy="30" r="7" fill="#ff6a00" style={{ filter: 'drop-shadow(0 0 6px #ff6a00)' }}/>
@@ -95,7 +95,7 @@ export const EventTimer: React.FC<EventTimerProps> = ({
           {/* Timer digits inside ring */}
           <div style={{
             fontFamily: 'var(--font-timer)',
-            fontSize: 'clamp(28px, 4vw, 40px)',
+            fontSize: 'clamp(26px, 4vw, 38px)',
             color: '#ff6a00',
             textShadow: '0 0 16px rgba(255,106,0,0.5)',
             letterSpacing: '3px',

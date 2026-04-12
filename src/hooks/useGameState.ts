@@ -208,6 +208,7 @@ export function useGameState() {
             phase: 'defusing',
             statusMessage: 'DEFUSING...',
             spikeEndTime: null,
+            endTime: null,
             defuseTimer: typeof payload?.defuseRemaining === 'number' ? payload.defuseRemaining : prev.defuseTimer,
             // spikeEndTime keeps counting during defuse attempt
           };
