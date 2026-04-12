@@ -50,9 +50,11 @@ export interface WebSocketMessage {
     serverTime?: number;    // For clock sync
     state?: string;         // Engine state (game_update)
     roundRemaining?: number | null;
+    plantRemaining?: number | null;
     spikeRemaining?: number | null;
     defuseRemaining?: number | null;
     roundTotal?: number | null;
+    plantTotal?: number | null;
     spikeTotal?: number | null;
     defuseTotal?: number | null;
     attackersScore?: number;
@@ -83,6 +85,8 @@ export interface GameState {
   attackersReady: boolean;
   defendersReady: boolean;
   roundTotal: number | null;
+  plantTimer: number;
+  plantTotal: number | null;
   spikeTotal: number | null;
   defuseTotal: number | null;
 }

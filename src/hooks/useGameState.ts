@@ -6,6 +6,7 @@ const INITIAL_STATE: GameState = {
   currentRound: 1,
   totalRounds: 3,
   timeRemaining: 600,
+  plantTimer: 60,
   spikeTimer: 40,
   defuseTimer: 0,
   endTime: null,
@@ -19,6 +20,7 @@ const INITIAL_STATE: GameState = {
   attackersReady: false,
   defendersReady: false,
   roundTotal: null,
+  plantTotal: null,
   spikeTotal: null,
   defuseTotal: null,
 };
@@ -94,9 +96,11 @@ export function useGameState() {
         case 'game_update': {
           const state = payload?.state;
           const roundRemaining = payload?.roundRemaining;
+          const plantRemaining = payload?.plantRemaining;
           const spikeRemaining = payload?.spikeRemaining;
           const defuseRemaining = payload?.defuseRemaining;
           const roundTotal = payload?.roundTotal ?? null;
+          const plantTotal = payload?.plantTotal ?? null;
           const spikeTotal = payload?.spikeTotal ?? null;
           const defuseTotal = payload?.defuseTotal ?? null;
           const attackersScore = typeof payload?.attackersScore === 'number' ? payload?.attackersScore : prev.attackersScore;
@@ -119,6 +123,7 @@ export function useGameState() {
             currentRound: round,
             totalRounds,
             timeRemaining: typeof roundRemaining === 'number' ? roundRemaining : prev.timeRemaining,
+            plantTimer: typeof plantRemaining === 'number' ? plantRemaining : prev.plantTimer,
             spikeTimer: typeof spikeRemaining === 'number' ? spikeRemaining : prev.spikeTimer,
             defuseTimer: typeof defuseRemaining === 'number' ? defuseRemaining : prev.defuseTimer,
             endTime: null,
@@ -126,6 +131,7 @@ export function useGameState() {
             roundStartEndTime: null,
             roundStartRemaining: 0,
             roundTotal,
+            plantTotal,
             spikeTotal,
             defuseTotal,
             attackersScore,
@@ -202,6 +208,7 @@ export function useGameState() {
             phase: 'defusing',
             statusMessage: 'DEFUSING...',
             spikeEndTime: null,
+            defuseTimer: typeof payload?.defuseRemaining === 'number' ? payload.defuseRemaining : prev.defuseTimer,
             // spikeEndTime keeps counting during defuse attempt
           };
 

@@ -3,7 +3,11 @@ import { GamePhase } from '../types/game';
 
 interface EventTimerProps {
   phase: GamePhase;
+  plantTimer: number;
+  plantTotal: number | null;
   spikeTimer: number;
+  defuseTimer: number;
+  defuseTotal: number | null;
 }
 
 function fmt(s: number) {
@@ -58,15 +62,26 @@ const DrainRing: React.FC<{ progress: number; color: string; size: number; isLow
   );
 };
 
-export const EventTimer: React.FC<EventTimerProps> = ({ phase, spikeTimer }) => {
+export const EventTimer: React.FC<EventTimerProps> = ({
+  phase,
+  plantTimer,
+  plantTotal,
+  spikeTimer,
+  defuseTimer,
+  defuseTotal,
+}) => {
   const RING_SIZE = 180;
 
   if (phase === 'spike_planting') {
+    const TOTAL = plantTotal ?? 60;
+    const progress = Math.max(0, Math.min(1, plantTimer / TOTAL));
+    const isLow = plantTimer <= 10;
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'clamp(6px, 1.5vh, 12px)' }}>
-        {/* Spinning ring with spike icon */}
+        {/* Plant timer ring with spike icon */}
         <div style={{ position: 'relative', width: RING_SIZE, height: RING_SIZE, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <SpinRing color="#ff6a00" size={RING_SIZE} />
+          <DrainRing progress={progress} color="#ff6a00" size={RING_SIZE} isLow={isLow} />
           {/* Spike hex icon */}
           <div style={{ animation: 'spikeBeep 1s ease-in-out infinite', zIndex: 1 }}>
             <svg width="60" height="60" viewBox="0 0 60 60">
@@ -75,15 +90,20 @@ export const EventTimer: React.FC<EventTimerProps> = ({ phase, spikeTimer }) => 
               <circle cx="30" cy="30" r="7" fill="#ff6a00" style={{ filter: 'drop-shadow(0 0 6px #ff6a00)' }}/>
             </svg>
           </div>
-          {/* Expanding rings */}
-          {[0, 1, 2].map(i => (
-            <div key={i} style={{
-              position: 'absolute', inset: 0, borderRadius: '50%',
-              border: '1.5px solid rgba(255,106,0,0.5)',
-              animation: `ringExpand 1.8s ease-out ${i * 0.6}s infinite`,
-              pointerEvents: 'none',
-            }} />
-          ))}
+
+          {/* Timer digits inside ring */}
+          <div style={{
+            fontFamily: 'var(--font-timer)',
+            fontSize: 'clamp(28px, 4vw, 40px)',
+            color: '#ff6a00',
+            textShadow: '0 0 16px rgba(255,106,0,0.5)',
+            letterSpacing: '3px',
+            lineHeight: 1,
+            zIndex: 1,
+            animation: isLow ? 'timerGlitch 0.8s infinite' : 'none',
+          }}>
+            {fmt(plantTimer)}
+          </div>
         </div>
         <div style={{
           fontFamily: 'var(--font-hud)', fontSize: 'clamp(10px, 1.5vw, 13px)',
@@ -95,14 +115,16 @@ export const EventTimer: React.FC<EventTimerProps> = ({ phase, spikeTimer }) => 
   }
 
   if (phase === 'spike_planted' || phase === 'defusing') {
-    const TOTAL    = 40;
-    const progress = Math.max(0, Math.min(1, spikeTimer / TOTAL));
-    const isLow    = spikeTimer <= 10;
-    const isMid    = !isLow && spikeTimer <= 20;
-    const color    = phase === 'defusing'
+    const isDefuse = phase === 'defusing';
+    const TOTAL = isDefuse ? (defuseTotal ?? 60) : 40;
+    const current = isDefuse ? defuseTimer : spikeTimer;
+    const progress = Math.max(0, Math.min(1, current / TOTAL));
+    const isLow    = current <= 10;
+    const isMid    = !isLow && current <= (isDefuse ? 20 : 20);
+    const color    = isDefuse
       ? 'var(--clr-cyan)'
       : isLow ? '#e8392a' : isMid ? '#ff6a00' : '#ff6a00';
-    const rawColor = phase === 'defusing'
+    const rawColor = isDefuse
       ? '#00d4f0'
       : isLow ? '#e8392a' : '#ff6a00';
 
@@ -112,7 +134,7 @@ export const EventTimer: React.FC<EventTimerProps> = ({ phase, spikeTimer }) => 
           <DrainRing progress={progress} color={rawColor} size={RING_SIZE} isLow={isLow} />
 
           {/* Defusing spinner overlay on top of drain ring */}
-          {phase === 'defusing' && (
+          {isDefuse && (
             <svg width={RING_SIZE} height={RING_SIZE} style={{ position: 'absolute', top: 0, left: 0 }}>
               <circle
                 cx={RING_SIZE/2} cy={RING_SIZE/2} r={RING_SIZE/2 - 6}
@@ -139,7 +161,7 @@ export const EventTimer: React.FC<EventTimerProps> = ({ phase, spikeTimer }) => 
             animation: isLow ? 'timerGlitch 0.8s infinite' : 'none',
             transition: 'color 0.4s ease',
           }}>
-            {fmt(spikeTimer)}
+            {fmt(current)}
           </div>
         </div>
 
@@ -147,10 +169,10 @@ export const EventTimer: React.FC<EventTimerProps> = ({ phase, spikeTimer }) => 
           fontFamily: 'var(--font-hud)',
           fontSize: 'clamp(9px, 1.3vw, 12px)',
           letterSpacing: '4px',
-          color: phase === 'defusing' ? 'var(--clr-cyan)' : isLow ? 'var(--clr-red)' : 'var(--clr-spike)',
-          animation: phase === 'defusing' ? 'pulseCyan 1s infinite' : isLow ? 'pulseRed 0.5s infinite' : 'none',
+          color: isDefuse ? 'var(--clr-cyan)' : isLow ? 'var(--clr-red)' : 'var(--clr-spike)',
+          animation: isDefuse ? 'pulseCyan 1s infinite' : isLow ? 'pulseRed 0.5s infinite' : 'none',
         }}>
-          {phase === 'defusing' ? 'DEFUSING' : 'DETONATION'}
+          {isDefuse ? 'DEFUSING' : 'DETONATION'}
         </div>
       </div>
     );

@@ -8,7 +8,11 @@ interface StatusDisplayProps {
   phase: GamePhase;
   statusMessage: string;
   timeRemaining: number;
+  plantTimer: number;
+  plantTotal: number | null;
   spikeTimer: number;
+  defuseTimer: number;
+  defuseTotal: number | null;
   roundStartRemaining: number;
 }
 
@@ -18,7 +22,15 @@ const SECONDARY_TIMER_PHASES: GamePhase[] = ['spike_planting', 'spike_planted', 
 const PRIMARY_TIMER_PHASES:   GamePhase[] = ['round_active'];
 
 export const StatusDisplay: React.FC<StatusDisplayProps> = ({
-  phase, statusMessage, timeRemaining, spikeTimer, roundStartRemaining,
+  phase,
+  statusMessage,
+  timeRemaining,
+  plantTimer,
+  plantTotal,
+  spikeTimer,
+  defuseTimer,
+  defuseTotal,
+  roundStartRemaining,
 }) => {
   const isWin        = phase === 'attackers_win' || phase === 'defenders_win';
   const isAwaiting   = phase === 'awaiting';
@@ -149,7 +161,11 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
               {/* Event ring timer (spike/defuse countdown) — primary */}
               <EventTimer
                 phase={phase}
+                plantTimer={plantTimer}
+                plantTotal={plantTotal}
                 spikeTimer={spikeTimer}
+                defuseTimer={defuseTimer}
+                defuseTotal={defuseTotal}
               />
 
               {/* Main round timer — secondary, dimmed, small */}

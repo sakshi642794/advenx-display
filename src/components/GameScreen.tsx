@@ -42,7 +42,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameState, isConnected }
           phase={phase}
           statusMessage={gameState.statusMessage}
           timeRemaining={gameState.timeRemaining}
+          plantTimer={gameState.plantTimer}
+          plantTotal={gameState.plantTotal}
           spikeTimer={gameState.spikeTimer}
+          defuseTimer={gameState.defuseTimer}
+          defuseTotal={gameState.defuseTotal}
           roundStartRemaining={gameState.roundStartRemaining}
         />
       </div>
