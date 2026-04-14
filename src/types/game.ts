@@ -14,6 +14,9 @@ export type GameEvent =
   | 'defenders_win'
   | 'attackers_ready'
   | 'defenders_ready'
+  | 'attackers_not_ready'
+  | 'defenders_not_ready'
+  | 'teams_ready'
   | 'reset_game'
   | 'sync';
 

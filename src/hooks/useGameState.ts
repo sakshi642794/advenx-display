@@ -283,6 +283,22 @@ export function useGameState() {
         case 'defenders_ready':
           return { ...prev, defendersReady: true };
 
+        case 'attackers_not_ready':
+          return { ...prev, attackersReady: false };
+
+        case 'defenders_not_ready':
+          return { ...prev, defendersReady: false };
+
+        case 'teams_ready': {
+          const aReady = payload?.attackersReady;
+          const dReady = payload?.defendersReady;
+          return {
+            ...prev,
+            attackersReady: typeof aReady === 'boolean' ? aReady : prev.attackersReady,
+            defendersReady: typeof dReady === 'boolean' ? dReady : prev.defendersReady,
+          };
+        }
+
         case 'reset_game':
           offsetRef.current = 0;
           return INITIAL_STATE;
