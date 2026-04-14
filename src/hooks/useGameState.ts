@@ -14,6 +14,7 @@ const INITIAL_STATE: GameState = {
   roundStartEndTime: null,
   roundStartRemaining: 0,
   backendConnected: false,
+  winEndTime: null,
   clockOffset: 0,
   statusMessage: 'AWAITING TEAMS',
   attackersScore: 0,
@@ -65,6 +66,16 @@ export function useGameState() {
             updated.roundStartRemaining = remaining;
             changed = true;
           }
+        }
+
+        // Win screen timeout (10s)
+        if (prev.winEndTime !== null && now >= prev.winEndTime) {
+          updated.phase = 'awaiting';
+          updated.statusMessage = 'AWAITING TEAMS';
+          updated.winEndTime = null;
+          updated.attackersReady = false;
+          updated.defendersReady = false;
+          changed = true;
         }
 
         return changed ? updated : prev;
@@ -260,6 +271,7 @@ export function useGameState() {
             defuseTimer: 0,
             attackersReady: false,
             defendersReady: false,
+            winEndTime: Date.now() + 10000,
           };
 
         case 'defenders_win':
@@ -276,6 +288,7 @@ export function useGameState() {
             defuseTimer: 0,
             attackersReady: false,
             defendersReady: false,
+            winEndTime: Date.now() + 10000,
           };
 
         case 'attackers_ready':

@@ -48,6 +48,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameState, isConnected }
           defuseTimer={gameState.defuseTimer}
           defuseTotal={gameState.defuseTotal}
           roundStartRemaining={gameState.roundStartRemaining}
+          attackersReady={gameState.attackersReady}
+          defendersReady={gameState.defendersReady}
         />
       </div>
 

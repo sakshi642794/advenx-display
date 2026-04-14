@@ -14,6 +14,8 @@ interface StatusDisplayProps {
   defuseTimer: number;
   defuseTotal: number | null;
   roundStartRemaining: number;
+  attackersReady: boolean;
+  defendersReady: boolean;
 }
 
 // Phases where main round timer shrinks but stays visible
@@ -31,6 +33,8 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
   defuseTimer,
   defuseTotal,
   roundStartRemaining,
+  attackersReady,
+  defendersReady,
 }) => {
   const isWin        = phase === 'attackers_win' || phase === 'defenders_win';
   const isAwaiting   = phase === 'awaiting';
@@ -94,10 +98,18 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
               }}>
                 AWAITING TEAMS
               </div>
-              <div style={{
-                fontFamily: 'var(--font-timer)', fontSize: 'clamp(22px, 4vw, 36px)',
-                color: 'var(--clr-red)', animation: 'blink 1.2s step-end infinite',
-              }}>_</div>
+              <div style={{ display: 'flex', gap: '24px' }}>
+                <TeamReadyPill label="ATTACKERS" ready={attackersReady} color="red" />
+                <TeamReadyPill label="DEFENDERS" ready={defendersReady} color="cyan" />
+              </div>
+              {attackersReady && defendersReady && (
+                <div style={{
+                  fontFamily: 'var(--font-hud)', fontSize: '11px', letterSpacing: '4px',
+                  color: 'var(--clr-white)', marginTop: '8px', animation: 'blink 1s step-end infinite',
+                }}>
+                  WAITING FOR GAME START...
+                </div>
+              )}
             </div>
           )}
 
@@ -198,6 +210,40 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
           )}
         </>
       )}
+    </div>
+  );
+};
+
+const TeamReadyPill: React.FC<{ label: string; ready: boolean; color: 'red' | 'cyan' }> = ({ label, ready, color }) => {
+  const c     = color === 'red' ? 'var(--clr-red)'      : 'var(--clr-cyan)';
+  const cDim  = color === 'red' ? 'var(--clr-red-dim)'  : 'var(--clr-cyan-dim)';
+  const cSoft = color === 'red' ? 'var(--clr-red-soft)' : 'var(--clr-cyan-soft)';
+  const glow  = color === 'red' ? 'var(--clr-red-glow)' : 'var(--clr-cyan-glow)';
+
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+      padding: '16px 24px',
+      border: `1px solid ${ready ? c : cDim}`,
+      background: ready ? cSoft : 'transparent',
+      boxShadow: ready ? `0 0 24px ${glow}` : 'none',
+      transition: 'all 0.4s ease',
+      minWidth: '120px',
+    }}>
+      <div style={{ fontFamily: 'var(--font-hud)', fontSize: '10px', letterSpacing: '3px', color: ready ? c : '#444' }}>
+        {label}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{
+          width: '8px', height: '8px', borderRadius: '50%',
+          background: ready ? c : '#222',
+          boxShadow: ready ? `0 0 10px ${glow}` : 'none',
+          animation: ready ? `${color === 'red' ? 'pulseRed' : 'pulseCyan'} 1.5s infinite` : 'none',
+        }} />
+        <span style={{ fontFamily: 'var(--font-hud)', fontSize: '11px', letterSpacing: '2px', color: ready ? c : '#333' }}>
+          {ready ? 'READY' : 'NOT READY'}
+        </span>
+      </div>
     </div>
   );
 };

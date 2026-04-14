@@ -43,19 +43,20 @@ const SpinRing: React.FC<{ color: string; size: number }> = ({ color, size }) =>
 const DrainRing: React.FC<{ progress: number; color: string; size: number; isLow: boolean }> = ({ progress, color, size, isLow }) => {
   const R = size / 2 - 6;
   const circ = 2 * Math.PI * R;
-  const dash = circ * progress;
-  const gap  = circ - dash;
+  const clamped = Math.max(0.001, Math.min(1, progress));
+  const offset = circ * (1 - clamped);
   return (
     <svg width={size} height={size} style={{ position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)' }}>
       <circle cx={size/2} cy={size/2} r={R} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="3" />
       <circle
         cx={size/2} cy={size/2} r={R} fill="none"
         stroke={color} strokeWidth="3"
-        strokeDasharray={`${dash} ${gap}`}
+        strokeDasharray={`${circ}`}
+        strokeDashoffset={`${offset}`}
         strokeLinecap="round"
         style={{
           filter: `drop-shadow(0 0 ${isLow ? '8px' : '4px'} ${color})`,
-          transition: 'stroke-dasharray 0.22s linear, stroke 0.4s ease',
+          transition: 'stroke-dashoffset 0.22s linear, stroke 0.4s ease',
         }}
       />
     </svg>

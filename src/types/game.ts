@@ -84,6 +84,7 @@ export interface GameState {
   roundStartEndTime: number | null;
   roundStartRemaining: number;
   backendConnected: boolean;
+  winEndTime: number | null;
   clockOffset: number;          // ms offset vs server clock (for sync)
   statusMessage: string;
   attackersScore: number;
