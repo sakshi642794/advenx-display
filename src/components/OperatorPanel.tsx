@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { GameState, OperatorMessage } from '../types/game';
 
 interface OperatorPanelProps {
@@ -13,8 +13,34 @@ interface OperatorPanelProps {
 export const OperatorPanel: React.FC<OperatorPanelProps> = ({
   gameState, isConnected, onSend, onAttackersReady, onDefendersReady, onReset,
 }) => {
+  const [isVisible, setIsVisible] = useState(true);
+  const clickCountRef = useRef(0);
+  const clickTimerRef = useRef<number | null>(null);
+
+  const handleSecretToggle = () => {
+    clickCountRef.current += 1;
+
+    if (clickTimerRef.current) {
+      window.clearTimeout(clickTimerRef.current);
+    }
+
+    clickTimerRef.current = window.setTimeout(() => {
+      clickCountRef.current = 0;
+      clickTimerRef.current = null;
+    }, 1200);
+
+    if (clickCountRef.current >= 3) {
+      clickCountRef.current = 0;
+      if (clickTimerRef.current) {
+        window.clearTimeout(clickTimerRef.current);
+        clickTimerRef.current = null;
+      }
+      setIsVisible(v => !v);
+    }
+  };
+
   const isAwaiting = gameState.phase === 'awaiting' || gameState.phase === 'round_over';
-  const open = isAwaiting;
+  const open = isAwaiting && isVisible;
 
   const bothReady = gameState.attackersReady && gameState.defendersReady;
   const handleAttackersReady = () => {
@@ -38,7 +64,23 @@ export const OperatorPanel: React.FC<OperatorPanelProps> = ({
 
   return (
     <>
+      {/* Hidden toggle hotspot (bottom-right) */}
+      <div
+        onClick={handleSecretToggle}
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          right: 0,
+          width: '48px',
+          height: '48px',
+          zIndex: 250,
+          cursor: 'pointer',
+          background: 'transparent',
+        }}
+      />
+
       {/* -- Slide-up panel -- */}
+      {isVisible && (
       <div style={{
         position: 'fixed', bottom: 0, right: 0,
         width: '300px',
@@ -190,6 +232,7 @@ export const OperatorPanel: React.FC<OperatorPanelProps> = ({
 
         {/* Auto-hidden during live rounds */}
       </div>
+      )}
 
       {/* -- Awaiting screen overlay - show ready status on main display -- */}
       {gameState.phase === 'awaiting' && (gameState.attackersReady || gameState.defendersReady) && (
