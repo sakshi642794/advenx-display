@@ -17,6 +17,7 @@ export type GameEvent =
   | 'attackers_not_ready'
   | 'defenders_not_ready'
   | 'teams_ready'
+  | 'backend_status'
   | 'reset_game'
   | 'sync';
 
@@ -62,6 +63,7 @@ export interface WebSocketMessage {
     defuseTotal?: number | null;
     attackersScore?: number;
     defendersScore?: number;
+    connected?: boolean;
   };
 }
 
@@ -81,6 +83,7 @@ export interface GameState {
   spikeEndTime: number | null;  // spike detonation end timestamp (ms)
   roundStartEndTime: number | null;
   roundStartRemaining: number;
+  backendConnected: boolean;
   clockOffset: number;          // ms offset vs server clock (for sync)
   statusMessage: string;
   attackersScore: number;

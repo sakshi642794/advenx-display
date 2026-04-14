@@ -13,6 +13,7 @@ const INITIAL_STATE: GameState = {
   spikeEndTime: null,
   roundStartEndTime: null,
   roundStartRemaining: 0,
+  backendConnected: false,
   clockOffset: 0,
   statusMessage: 'AWAITING TEAMS',
   attackersScore: 0,
@@ -298,6 +299,12 @@ export function useGameState() {
             defendersReady: typeof dReady === 'boolean' ? dReady : prev.defendersReady,
           };
         }
+
+        case 'backend_status':
+          return {
+            ...prev,
+            backendConnected: typeof payload?.connected === 'boolean' ? payload.connected : prev.backendConnected,
+          };
 
         case 'reset_game':
           offsetRef.current = 0;

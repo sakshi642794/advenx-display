@@ -2,10 +2,11 @@ import React from 'react';
 
 interface ConnectionOverlayProps {
   isConnected: boolean;
+  backendConnected: boolean;
 }
 
-const ConnectionOverlay: React.FC<ConnectionOverlayProps> = ({ isConnected }) => {
-  if (isConnected) return null;
+const ConnectionOverlay: React.FC<ConnectionOverlayProps> = ({ isConnected, backendConnected }) => {
+  if (isConnected && backendConnected) return null;
 
   return (
     <div style={{
@@ -34,7 +35,7 @@ const ConnectionOverlay: React.FC<ConnectionOverlayProps> = ({ isConnected }) =>
         letterSpacing: '3px',
         color: 'var(--clr-grey)',
       }}>
-        CONNECTING TO BACKEND...
+        {isConnected ? 'WAITING FOR BACKEND...' : 'CONNECTING TO LOCAL WS...'}
       </span>
     </div>
   );

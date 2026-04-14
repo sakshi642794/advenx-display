@@ -66,7 +66,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameState, isConnected }
         <TeamRow team="defender" score={gameState.defendersScore} phase={phase} />
       </div>
 
-      <ConnectionOverlay isConnected={isConnected} />
+      <ConnectionOverlay
+        isConnected={isConnected}
+        backendConnected={gameState.backendConnected}
+      />
     </div>
   );
 };
