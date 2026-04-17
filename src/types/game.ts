@@ -67,6 +67,8 @@ export interface WebSocketMessage {
     defuseTotal?: number | null;
     attackersScore?: number;
     defendersScore?: number;
+    attackersReady?: boolean;
+    defendersReady?: boolean;
     connected?: boolean;
     command?: string;
     fastCount?: number;
