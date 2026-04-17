@@ -7,6 +7,7 @@ import { WinScreen } from './WinScreen';
 interface StatusDisplayProps {
   phase: GamePhase;
   statusMessage: string;
+  currentRound: number;
   timeRemaining: number;
   plantTimer: number;
   plantTotal: number | null;
@@ -18,14 +19,15 @@ interface StatusDisplayProps {
   defendersReady: boolean;
 }
 
-// Phases where main round timer shrinks but stays visible
-const SECONDARY_TIMER_PHASES: GamePhase[] = ['spike_planting', 'spike_planted', 'defusing'];
+// Phases where the event ring is the primary focus
+const EVENT_TIMER_PHASES: GamePhase[] = ['spike_planting', 'spike_planted', 'defusing'];
 // Phases where main timer is big and alone
 const PRIMARY_TIMER_PHASES:   GamePhase[] = ['round_active'];
 
 export const StatusDisplay: React.FC<StatusDisplayProps> = ({
   phase,
   statusMessage,
+  currentRound,
   timeRemaining,
   plantTimer,
   plantTotal,
@@ -41,8 +43,8 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
   const isStarting   = phase === 'round_starting';
   const isRoundOver  = phase === 'round_over';
   const showMainBig  = PRIMARY_TIMER_PHASES.includes(phase);
-  const showMainSmall= SECONDARY_TIMER_PHASES.includes(phase);
-  const showEvent    = SECONDARY_TIMER_PHASES.includes(phase);
+  const showMainSmall= false;
+  const showEvent    = EVENT_TIMER_PHASES.includes(phase);
 
   const statusColor =
     phase === 'attackers_win'    ? 'var(--clr-red)'
@@ -118,13 +120,24 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'clamp(10px, 2vh, 18px)' }}>
               <div style={{
                 fontFamily: 'var(--font-hud)',
-                fontSize: 'clamp(18px, 3.5vw, 40px)',
+                fontSize: 'clamp(26px, 4.5vw, 52px)',
                 fontWeight: 700,
-                letterSpacing: 'clamp(4px, 1vw, 8px)',
+                letterSpacing: 'clamp(5px, 1vw, 10px)',
                 color: 'var(--clr-white)',
                 textAlign: 'center',
+                textShadow: '0 0 18px rgba(255,255,255,0.18)',
               }}>
-                ROUND STARTING
+                {`ROUND ${currentRound}`}
+              </div>
+              <div style={{
+                fontFamily: 'var(--font-hud)',
+                fontSize: 'clamp(12px, 2vw, 20px)',
+                fontWeight: 700,
+                letterSpacing: 'clamp(4px, 0.8vw, 8px)',
+                color: 'var(--clr-grey)',
+                textAlign: 'center',
+              }}>
+                STARTING IN
               </div>
               <div style={{
                 fontFamily: 'var(--font-timer)',

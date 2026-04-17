@@ -1,6 +1,5 @@
 import React from 'react';
 import { GameScreen } from './components/GameScreen';
-import { OperatorPanel } from './components/OperatorPanel';
 import { useGameState } from './hooks/useGameState';
 import { useWebSocket } from './hooks/useWebSocket';
 import './styles/globals.css';
@@ -9,10 +8,9 @@ const App: React.FC = () => {
   const {
     gameState, isConnected,
     handleMessage, handleConnect, handleDisconnect,
-    markAttackersReady, markDefendersReady, resetGame,
   } = useGameState();
 
-  const { send } = useWebSocket({
+  useWebSocket({
     onMessage: handleMessage,
     onConnect: handleConnect,
     onDisconnect: handleDisconnect,
@@ -21,14 +19,6 @@ const App: React.FC = () => {
   return (
     <>
       <GameScreen gameState={gameState} isConnected={isConnected} />
-      <OperatorPanel
-        gameState={gameState}
-        isConnected={isConnected}
-        onSend={send}
-        onAttackersReady={markAttackersReady}
-        onDefendersReady={markDefendersReady}
-        onReset={resetGame}
-      />
     </>
   );
 };

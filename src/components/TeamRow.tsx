@@ -2,9 +2,15 @@ import React from 'react';
 import { PlayerCard } from './PlayerCard';
 import { GamePhase } from '../types/game';
 
-interface TeamRowProps { team: 'attacker' | 'defender'; score: number; phase: GamePhase; }
+interface TeamRowProps {
+  team: 'attacker' | 'defender';
+  score: number;
+  phase: GamePhase;
+  deadPlayers: Record<string, boolean>;
+  reviveFx: Record<string, number>;
+}
 
-export const TeamRow: React.FC<TeamRowProps> = ({ team, phase }) => {
+export const TeamRow: React.FC<TeamRowProps> = ({ team, phase, deadPlayers, reviveFx }) => {
   const isAtk  = team === 'attacker';
   const color   = isAtk ? 'var(--clr-red)'     : 'var(--clr-cyan)';
   const dimColor= isAtk ? 'var(--clr-red-dim)' : 'var(--clr-cyan-dim)';
@@ -23,13 +29,21 @@ export const TeamRow: React.FC<TeamRowProps> = ({ team, phase }) => {
 
       {/* Cards */}
       <div style={{ display:'flex', gap:'6px' }}>
-        {[1,2,3,4,5].map(n => (
-          <PlayerCard
-            key={n} num={n}
-            label={`${prefix}${n}`}
-            team={team} index={n} phase={phase}
-          />
-        ))}
+        {[1,2,3,4,5].map(n => {
+          const id = `${prefix}${n}`;
+          return (
+            <PlayerCard
+              key={n}
+              num={n}
+              label={id}
+              team={team}
+              index={n}
+              phase={phase}
+              isDead={!!deadPlayers[id]}
+              reviveActive={!!reviveFx[id]}
+            />
+          );
+        })}
       </div>
     </div>
   );

@@ -10,6 +10,14 @@ interface GameScreenProps { gameState: GameState; isConnected: boolean; }
 
 export const GameScreen: React.FC<GameScreenProps> = ({ gameState, isConnected }) => {
   const { phase } = gameState;
+  const announcementColor =
+    gameState.announcementTone === 'fast' ? 'var(--clr-red)'
+    : gameState.announcementTone === 'slow' ? 'var(--clr-cyan)'
+    : 'var(--clr-white)';
+  const announcementGlow =
+    gameState.announcementTone === 'fast' ? 'var(--clr-red-glow)'
+    : gameState.announcementTone === 'slow' ? 'var(--clr-cyan-glow)'
+    : 'rgba(255,255,255,0.18)';
 
   const ambientColor =
     phase === 'spike_planted' || phase === 'attackers_win' ? 'rgba(255,106,0,0.04)'
@@ -33,6 +41,31 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameState, isConnected }
       <HudBrackets phase={phase} />
       <Header gameState={gameState} isConnected={isConnected} />
 
+      {gameState.globalAnnouncement && (
+        <div style={{
+          position: 'absolute',
+          top: '66px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 30,
+          maxWidth: 'min(88vw, 920px)',
+          padding: '10px 18px',
+          border: `1px solid ${announcementColor}`,
+          background: 'rgba(10,10,10,0.88)',
+          color: announcementColor,
+          fontFamily: 'var(--font-hud)',
+          fontSize: 'clamp(10px, 1.2vw, 13px)',
+          letterSpacing: '3px',
+          textAlign: 'center',
+          textShadow: `0 0 12px ${announcementGlow}`,
+          boxShadow: `0 0 24px ${announcementGlow}`,
+          animation: 'fadeIn 0.25s ease',
+          pointerEvents: 'none',
+        }}>
+          {gameState.globalAnnouncement}
+        </div>
+      )}
+
       {/* Hairline */}
       <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, var(--clr-red), transparent)', opacity: 0.3, flexShrink: 0 }} />
 
@@ -41,6 +74,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameState, isConnected }
         <StatusDisplay
           phase={phase}
           statusMessage={gameState.statusMessage}
+          currentRound={gameState.currentRound}
           timeRemaining={gameState.timeRemaining}
           plantTimer={gameState.plantTimer}
           plantTotal={gameState.plantTotal}
@@ -64,8 +98,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameState, isConnected }
         borderTop: '1px solid #111',
         flexShrink: 0,
       }}>
-        <TeamRow team="attacker" score={gameState.attackersScore} phase={phase} />
-        <TeamRow team="defender" score={gameState.defendersScore} phase={phase} />
+        <TeamRow team="attacker" score={gameState.attackersScore} phase={phase} deadPlayers={gameState.deadPlayers} reviveFx={gameState.reviveFx} />
+        <TeamRow team="defender" score={gameState.defendersScore} phase={phase} deadPlayers={gameState.deadPlayers} reviveFx={gameState.reviveFx} />
       </div>
 
       <ConnectionOverlay

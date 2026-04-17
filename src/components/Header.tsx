@@ -39,7 +39,22 @@ export const Header: React.FC<HeaderProps> = ({ gameState, isConnected }) => (
     </div>
 
     {/* Live indicator */}
-    <div style={{ display:'flex', alignItems:'center', gap:'8px', fontFamily:'var(--font-hud)', fontSize:'11px', letterSpacing:'2px', color: isConnected ? 'var(--clr-grey)' : '#444' }}>
+    <div style={{ display:'flex', alignItems:'center', gap:'14px', fontFamily:'var(--font-hud)', fontSize:'11px', letterSpacing:'2px', color: isConnected ? 'var(--clr-grey)' : '#444' }}>
+      {gameState.timerSpeedMode !== 'normal' && (
+        <div style={{
+          padding: '4px 10px',
+          border: `1px solid ${gameState.timerSpeedMode === 'fast' ? 'var(--clr-red-dim)' : 'var(--clr-cyan-dim)'}`,
+          background: gameState.timerSpeedMode === 'fast' ? 'var(--clr-red-soft)' : 'var(--clr-cyan-soft)',
+          color: gameState.timerSpeedMode === 'fast' ? 'var(--clr-red)' : 'var(--clr-cyan)',
+          boxShadow: gameState.timerSpeedMode === 'fast'
+            ? '0 0 14px var(--clr-red-glow)'
+            : '0 0 14px var(--clr-cyan-glow)',
+          fontSize: '10px',
+          letterSpacing: '3px',
+        }}>
+          {gameState.timerSpeedMode === 'fast' ? 'TIME FLOW 2X' : 'TIME FLOW 0.5X'}
+        </div>
+      )}
       <div style={{
         width:'7px', height:'7px', borderRadius:'50%',
         background: isConnected ? 'var(--clr-red)' : '#333',

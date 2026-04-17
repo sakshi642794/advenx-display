@@ -217,20 +217,6 @@ export const OperatorPanel: React.FC<OperatorPanelProps> = ({
         >
           RESET GAME
         </button>
-
-        {/* Phase indicator when game is running */}
-        {!isAwaiting && (
-          <div style={{
-            marginTop: '16px', padding: '10px',
-            background: '#111', border: '1px solid #1a1a1a',
-            fontFamily: 'var(--font-hud)', fontSize: '9px',
-            letterSpacing: '2px', color: '#444', textAlign: 'center',
-          }}>
-            GAME IN PROGRESS - {gameState.phase.toUpperCase().replace(/_/g, ' ')}
-          </div>
-        )}
-
-        {/* Auto-hidden during live rounds */}
       </div>
       )}
 

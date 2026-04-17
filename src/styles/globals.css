@@ -13,6 +13,9 @@
   --clr-cyan-dim: #004f5e;
   --clr-cyan-glow: rgba(0,212,240,0.45);
   --clr-cyan-soft: rgba(0,212,240,0.10);
+  --clr-green: #4dff7a;
+  --clr-green-glow: rgba(77,255,122,0.5);
+  --clr-green-soft: rgba(77,255,122,0.12);
   --clr-white: #f0f0f0;
   --clr-grey: #666;
   --clr-grey2: #333;
@@ -51,3 +54,5 @@ body::after {
 @keyframes cardPulseRed  { 0%,100%{border-color:var(--clr-red-dim);box-shadow:none} 50%{border-color:var(--clr-red);box-shadow:0 0 12px var(--clr-red-glow)} }
 @keyframes cardPulseCyan { 0%,100%{border-color:var(--clr-cyan-dim);box-shadow:none} 50%{border-color:var(--clr-cyan);box-shadow:0 0 12px var(--clr-cyan-glow)} }
 @keyframes haloExpand { 0%{transform:scale(1);opacity:0.6} 100%{transform:scale(3);opacity:0} }
+@keyframes revivePlus { 0%{opacity:0;transform:translateY(8px) scale(0.7)} 20%{opacity:1} 100%{opacity:0;transform:translateY(-18px) scale(1.1)} }
+@keyframes reviveGlow { 0%{opacity:0;transform:scale(0.96)} 30%{opacity:1} 100%{opacity:0;transform:scale(1.08)} }

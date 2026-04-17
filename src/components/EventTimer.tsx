@@ -1,5 +1,6 @@
 import React from 'react';
 import { GamePhase } from '../types/game';
+import { SpikePulse } from './SpikePulse';
 
 interface EventTimerProps {
   phase: GamePhase;
@@ -135,6 +136,7 @@ export const EventTimer: React.FC<EventTimerProps> = ({
         <div style={{ position: 'relative', width: RING_SIZE, height: RING_SIZE, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <DrainRing progress={progress} color={rawColor} size={RING_SIZE} isLow={isLow} />
           {isDefuse && <SpinRing color="#00d4f0" size={RING_SIZE} />}
+          {!isDefuse && <SpikePulse size={96} opacity={0.5} />}
 
           {/* Defusing spinner overlay on top of drain ring */}
           {isDefuse && (
@@ -172,10 +174,10 @@ export const EventTimer: React.FC<EventTimerProps> = ({
           fontFamily: 'var(--font-hud)',
           fontSize: 'clamp(9px, 1.3vw, 12px)',
           letterSpacing: '4px',
-          color: isDefuse ? 'var(--clr-cyan)' : isLow ? 'var(--clr-red)' : 'var(--clr-spike)',
-          animation: isDefuse ? 'pulseCyan 1s infinite' : isLow ? 'pulseRed 0.5s infinite' : 'none',
+          color: isDefuse ? 'var(--clr-grey)' : isLow ? 'var(--clr-red)' : 'var(--clr-spike)',
+          animation: isDefuse ? 'none' : isLow ? 'pulseRed 0.5s infinite' : 'none',
         }}>
-          {isDefuse ? 'DEFUSING' : 'DETONATION'}
+          {isDefuse ? 'SPIKE PAUSED' : 'DETONATION'}
         </div>
       </div>
     );

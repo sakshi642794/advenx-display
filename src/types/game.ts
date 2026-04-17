@@ -1,3 +1,5 @@
+// Backend may broadcast free-form command events like "A1-killed" or "revive-A1"
+// so we treat event as a general string and narrow where needed.
 export type GameEvent =
   | 'game_update'
   | 'round_starting'
@@ -17,9 +19,11 @@ export type GameEvent =
   | 'attackers_not_ready'
   | 'defenders_not_ready'
   | 'teams_ready'
+  | 'timer_speed_update'
   | 'backend_status'
   | 'reset_game'
-  | 'sync';
+  | 'sync'
+  | string;
 
 export type OperatorEvent =
   | 'attackers_ready'
@@ -64,6 +68,16 @@ export interface WebSocketMessage {
     attackersScore?: number;
     defendersScore?: number;
     connected?: boolean;
+    command?: string;
+    fastCount?: number;
+    slowCount?: number;
+    activeCount?: number;
+    effectiveMode?: 'normal' | 'fast' | 'slow';
+    speedMultiplier?: number;
+    nextExpiryAt?: number | null;
+    durationSeconds?: number;
+    announcement?: string;
+    reason?: 'activated' | 'expired' | 'reset';
   };
 }
 
@@ -96,5 +110,15 @@ export interface GameState {
   plantTotal: number | null;
   spikeTotal: number | null;
   defuseTotal: number | null;
+  timerSpeedMultiplier: number;
+  timerSpeedMode: 'normal' | 'fast' | 'slow';
+  timerSpeedFastCount: number;
+  timerSpeedSlowCount: number;
+  timerSpeedNextExpiryAt: number | null;
+  globalAnnouncement: string | null;
+  announcementTone: 'neutral' | 'fast' | 'slow';
+  announcementEndTime: number | null;
+  deadPlayers: Record<string, boolean>;
+  reviveFx: Record<string, number>;
 }
 

@@ -25,7 +25,41 @@ const INITIAL_STATE: GameState = {
   plantTotal: null,
   spikeTotal: null,
   defuseTotal: null,
+  timerSpeedMultiplier: 1,
+  timerSpeedMode: 'normal',
+  timerSpeedFastCount: 0,
+  timerSpeedSlowCount: 0,
+  timerSpeedNextExpiryAt: null,
+  globalAnnouncement: null,
+  announcementTone: 'neutral',
+  announcementEndTime: null,
+  deadPlayers: {},
+  reviveFx: {},
 };
+
+function deriveScaledEndTime(remainingSeconds: number, speedMultiplier: number, now: number) {
+  if (remainingSeconds <= 0) return now;
+  return now + (remainingSeconds * 1000) / speedMultiplier;
+}
+
+function parsePlayerCommand(raw: string) {
+  const s = raw.trim();
+
+  const killed = s.match(/^([ad][1-5])[-_ ]?killed$/i);
+  if (killed) return { kind: 'killed' as const, playerId: killed[1].toUpperCase() };
+
+  const revive = s.match(/^revive-([ad][1-5])$/i);
+  if (revive) return { kind: 'revive' as const, playerId: revive[1].toUpperCase() };
+
+  return null;
+}
+
+function teamAllDead(deadPlayers: Record<string, boolean>, teamPrefix: 'A' | 'D') {
+  for (let i = 1; i <= 5; i += 1) {
+    if (!deadPlayers[`${teamPrefix}${i}`]) return false;
+  }
+  return true;
+}
 
 export function useGameState() {
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
@@ -75,7 +109,32 @@ export function useGameState() {
           updated.winEndTime = null;
           updated.attackersReady = false;
           updated.defendersReady = false;
+          updated.deadPlayers = {};
+          updated.reviveFx = {};
           changed = true;
+        }
+
+        if (prev.announcementEndTime !== null && now >= prev.announcementEndTime) {
+          updated.globalAnnouncement = null;
+          updated.announcementEndTime = null;
+          updated.announcementTone = 'neutral';
+          changed = true;
+        }
+
+        // Clear expired revive FX
+        const reviveKeys = Object.keys(prev.reviveFx);
+        if (reviveKeys.length) {
+          let nextReviveFx: Record<string, number> | null = null;
+          for (const key of reviveKeys) {
+            if (prev.reviveFx[key] <= now) {
+              if (!nextReviveFx) nextReviveFx = { ...prev.reviveFx };
+              delete nextReviveFx[key];
+            }
+          }
+          if (nextReviveFx) {
+            updated.reviveFx = nextReviveFx;
+            changed = true;
+          }
         }
 
         return changed ? updated : prev;
@@ -89,9 +148,61 @@ export function useGameState() {
     const { event, payload } = msg;
 
     setGameState(prev => {
+      const now = Date.now() + offsetRef.current;
+      const commandRaw = typeof payload?.command === 'string' ? payload.command : String(event ?? '');
+      const parsedCommand = parsePlayerCommand(commandRaw);
       const round       = payload?.round ?? payload?.currentRound ?? prev.currentRound;
       const totalRounds = payload?.total_rounds ?? payload?.totalRounds ?? prev.totalRounds;
       const endTime     = payload?.endTime      ?? null;
+      const effectiveSpeed = prev.timerSpeedMultiplier || 1;
+
+      const allowPlayerCommands =
+        prev.phase === 'round_active' ||
+        prev.phase === 'spike_planting' ||
+        prev.phase === 'spike_planted' ||
+        prev.phase === 'defusing';
+
+      if (parsedCommand && allowPlayerCommands && prev.phase !== 'attackers_win' && prev.phase !== 'defenders_win') {
+        if (parsedCommand.kind === 'killed') {
+          const deadPlayers = { ...prev.deadPlayers, [parsedCommand.playerId]: true };
+          const reviveFx = { ...prev.reviveFx };
+          delete reviveFx[parsedCommand.playerId];
+
+          // If a full team is eliminated, the other team wins immediately.
+          const attackersDead = teamAllDead(deadPlayers, 'A');
+          const defendersDead = teamAllDead(deadPlayers, 'D');
+          if (attackersDead || defendersDead) {
+            const winner = attackersDead ? 'defenders' : 'attackers';
+            return {
+              ...prev,
+              phase: winner === 'defenders' ? 'defenders_win' : 'attackers_win',
+              statusMessage: winner === 'defenders' ? 'DEFENDERS WIN' : 'ATTACKERS WIN',
+              endTime: null,
+              spikeEndTime: null,
+              roundStartEndTime: null,
+              roundStartRemaining: 0,
+              defuseTimer: 0,
+              attackersScore: winner === 'attackers' ? prev.attackersScore + 1 : prev.attackersScore,
+              defendersScore: winner === 'defenders' ? prev.defendersScore + 1 : prev.defendersScore,
+              winEndTime: Date.now() + 10000,
+              deadPlayers,
+              reviveFx,
+            };
+          }
+
+          return { ...prev, deadPlayers, reviveFx };
+        }
+
+        if (parsedCommand.kind === 'revive') {
+          const deadPlayers = { ...prev.deadPlayers };
+          delete deadPlayers[parsedCommand.playerId];
+          return {
+            ...prev,
+            deadPlayers,
+            reviveFx: { ...prev.reviveFx, [parsedCommand.playerId]: now + 900 },
+          };
+        }
+      }
 
       switch (event) {
 
@@ -128,6 +239,12 @@ export function useGameState() {
           };
 
           const nextPhase = state && phaseMap[state] ? phaseMap[state] : prev.phase;
+          const nextRoundEndTime = nextPhase === 'round_active' && typeof roundRemaining === 'number'
+            ? deriveScaledEndTime(roundRemaining, effectiveSpeed, now)
+            : null;
+          const nextSpikeEndTime = nextPhase === 'spike_planted' && typeof spikeRemaining === 'number'
+            ? deriveScaledEndTime(spikeRemaining, effectiveSpeed, now)
+            : null;
 
           return {
             ...prev,
@@ -138,8 +255,8 @@ export function useGameState() {
             plantTimer: typeof plantRemaining === 'number' ? plantRemaining : prev.plantTimer,
             spikeTimer: typeof spikeRemaining === 'number' ? spikeRemaining : prev.spikeTimer,
             defuseTimer: typeof defuseRemaining === 'number' ? defuseRemaining : prev.defuseTimer,
-            endTime: null,
-            spikeEndTime: null,
+            endTime: nextRoundEndTime,
+            spikeEndTime: nextSpikeEndTime,
             roundStartEndTime: null,
             roundStartRemaining: 0,
             roundTotal,
@@ -167,24 +284,35 @@ export function useGameState() {
             ...prev,
             phase: 'round_starting',
             statusMessage: 'ROUND STARTING',
-            roundStartEndTime: endTime ?? (Date.now() + 3000),
-            roundStartRemaining: payload?.seconds ?? 3,
+            roundStartEndTime: endTime ?? (Date.now() + 5000),
+            roundStartRemaining: payload?.seconds ?? 5,
+            deadPlayers: {},
+            reviveFx: {},
           };
 
         case 'round_started':
+          {
+          const startedRemaining = endTime !== null
+            ? Math.max(0, Math.floor((endTime - now) / 1000))
+            : prev.timeRemaining;
           return {
             ...prev,
             phase: 'round_active',
             currentRound: round,
             totalRounds,
-            endTime,                    // store server-provided endTime
+            endTime: endTime !== null
+              ? deriveScaledEndTime(startedRemaining, effectiveSpeed, now)
+              : prev.endTime,
             spikeEndTime: null,
             roundStartEndTime: null,
             roundStartRemaining: 0,
             statusMessage: 'ROUND IN PROGRESS',
             attackersReady: false,
             defendersReady: false,
+            deadPlayers: {},
+            reviveFx: {},
           };
+          }
 
         case 'spike_planting':
           return {
@@ -197,22 +325,36 @@ export function useGameState() {
 
         case 'plant_canceled':
         case 'round_resumed':
+          {
+          const resumedRemaining = endTime !== null
+            ? Math.max(0, Math.floor((endTime - now) / 1000))
+            : prev.timeRemaining;
           return {
             ...prev,
             phase: 'round_active',
             statusMessage: 'ROUND IN PROGRESS',
             // backend should re-send endTime on resume; fall back to prev
-            endTime: endTime ?? prev.endTime,
+            endTime: endTime !== null
+              ? deriveScaledEndTime(resumedRemaining, effectiveSpeed, now)
+              : prev.endTime,
           };
+          }
 
         case 'spike_planted':
+          {
+          const plantedRemaining = endTime !== null
+            ? Math.max(0, Math.floor((endTime - now) / 1000))
+            : prev.spikeTimer;
           return {
             ...prev,
             phase: 'spike_planted',
             statusMessage: 'SPIKE PLANTED',
             endTime: null,              // round timer no longer relevant
-            spikeEndTime: endTime,      // detonation countdown
+            spikeEndTime: endTime !== null
+              ? deriveScaledEndTime(plantedRemaining, effectiveSpeed, now)
+              : prev.spikeEndTime,
           };
+          }
 
         case 'defuse_start':
           return {
@@ -226,13 +368,20 @@ export function useGameState() {
           };
 
         case 'defuse_canceled':
+          {
+          const resumedSpikeRemaining = endTime !== null
+            ? Math.max(0, Math.floor((endTime - now) / 1000))
+            : prev.spikeTimer;
           return {
             ...prev,
             phase: 'spike_planted',
             statusMessage: 'SPIKE PLANTED',
-            spikeEndTime: endTime ?? prev.spikeEndTime,
+            spikeEndTime: endTime !== null
+              ? deriveScaledEndTime(resumedSpikeRemaining, effectiveSpeed, now)
+              : prev.spikeEndTime,
             defuseTimer: 0,
           };
+          }
 
         case 'defuse_success':
           return {
@@ -241,6 +390,8 @@ export function useGameState() {
             statusMessage: 'SPIKE DEFUSED',
             spikeEndTime: null,
             defuseTimer: 0,
+            deadPlayers: {},
+            reviveFx: {},
           };
 
         case 'round_end':
@@ -255,9 +406,19 @@ export function useGameState() {
             defuseTimer: 0,
             attackersReady: false,
             defendersReady: false,
+            deadPlayers: {},
+            reviveFx: {},
           };
 
         case 'attackers_win':
+          if (prev.phase === 'attackers_win') {
+            return {
+              ...prev,
+              attackersScore: typeof payload?.attackersScore === 'number' ? payload.attackersScore : prev.attackersScore,
+              defendersScore: typeof payload?.defendersScore === 'number' ? payload.defendersScore : prev.defendersScore,
+              winEndTime: prev.winEndTime ?? (Date.now() + 10000),
+            };
+          }
           return {
             ...prev,
             phase: 'attackers_win',
@@ -272,9 +433,19 @@ export function useGameState() {
             attackersReady: false,
             defendersReady: false,
             winEndTime: Date.now() + 10000,
+            deadPlayers: {},
+            reviveFx: {},
           };
 
         case 'defenders_win':
+          if (prev.phase === 'defenders_win') {
+            return {
+              ...prev,
+              attackersScore: typeof payload?.attackersScore === 'number' ? payload.attackersScore : prev.attackersScore,
+              defendersScore: typeof payload?.defendersScore === 'number' ? payload.defendersScore : prev.defendersScore,
+              winEndTime: prev.winEndTime ?? (Date.now() + 10000),
+            };
+          }
           return {
             ...prev,
             phase: 'defenders_win',
@@ -289,6 +460,8 @@ export function useGameState() {
             attackersReady: false,
             defendersReady: false,
             winEndTime: Date.now() + 10000,
+            deadPlayers: {},
+            reviveFx: {},
           };
 
         case 'attackers_ready':
@@ -322,6 +495,43 @@ export function useGameState() {
         case 'reset_game':
           offsetRef.current = 0;
           return INITIAL_STATE;
+
+        case 'timer_speed_update': {
+          const nextMultiplier = typeof payload?.speedMultiplier === 'number' ? payload.speedMultiplier : prev.timerSpeedMultiplier;
+          const nextMode = payload?.effectiveMode ?? prev.timerSpeedMode;
+          const nextAnnouncement = payload?.announcement ?? prev.globalAnnouncement;
+          const announcementTone = nextMode === 'fast' ? 'fast' : nextMode === 'slow' ? 'slow' : 'neutral';
+
+          const roundRemaining = prev.endTime !== null
+            ? Math.max(0, (prev.endTime - now) / 1000)
+            : prev.phase === 'round_active'
+              ? prev.timeRemaining
+              : 0;
+
+          const spikeRemaining = prev.spikeEndTime !== null
+            ? Math.max(0, (prev.spikeEndTime - now) / 1000)
+            : prev.phase === 'spike_planted'
+              ? prev.spikeTimer
+              : 0;
+
+          return {
+            ...prev,
+            timerSpeedMultiplier: nextMultiplier,
+            timerSpeedMode: nextMode,
+            timerSpeedFastCount: typeof payload?.fastCount === 'number' ? payload.fastCount : prev.timerSpeedFastCount,
+            timerSpeedSlowCount: typeof payload?.slowCount === 'number' ? payload.slowCount : prev.timerSpeedSlowCount,
+            timerSpeedNextExpiryAt: typeof payload?.nextExpiryAt === 'number' ? payload.nextExpiryAt : null,
+            globalAnnouncement: nextAnnouncement,
+            announcementTone,
+            announcementEndTime: nextAnnouncement ? now + 4500 : null,
+            endTime: prev.phase === 'round_active' && roundRemaining > 0
+              ? deriveScaledEndTime(roundRemaining, nextMultiplier, now)
+              : prev.endTime,
+            spikeEndTime: prev.phase === 'spike_planted' && spikeRemaining > 0
+              ? deriveScaledEndTime(spikeRemaining, nextMultiplier, now)
+              : prev.spikeEndTime,
+          };
+        }
 
         default:
           return prev;
