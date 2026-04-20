@@ -45,11 +45,14 @@ function deriveScaledEndTime(remainingSeconds: number, speedMultiplier: number, 
 function parsePlayerCommand(raw: string) {
   const s = raw.trim();
 
+  const kill = s.match(/^kill[-_ ]?([ad][1-5])$/i);
+  if (kill) return { kind: 'killed' as const, playerId: kill[1].toUpperCase() };
+
   const killed = s.match(/^([ad][1-5])[-_ ]?killed$/i);
   if (killed) return { kind: 'killed' as const, playerId: killed[1].toUpperCase() };
 
-  const revive = s.match(/^revive-([ad][1-5])$/i);
-  if (revive) return { kind: 'revive' as const, playerId: revive[1].toUpperCase() };
+  const reviveSpaced = s.match(/^revive[-_ ]?([ad][1-5])$/i);
+  if (reviveSpaced) return { kind: 'revive' as const, playerId: reviveSpaced[1].toUpperCase() };
 
   return null;
 }
@@ -149,7 +152,24 @@ export function useGameState() {
 
     setGameState(prev => {
       const now = Date.now() + offsetRef.current;
-      const commandRaw = typeof payload?.command === 'string' ? payload.command : String(event ?? '');
+      let commandRaw = typeof payload?.command === 'string' ? payload.command : String(event ?? '');
+
+      // Accept {event:"kill"/"revive", payload:{playerId:"A1"}} style commands too.
+      const eventLower = typeof event === 'string' ? event.toLowerCase() : '';
+      if ((eventLower === 'kill' || eventLower === 'revive') && payload && typeof payload === 'object') {
+        const player =
+          typeof (payload as any).playerId === 'string'
+            ? (payload as any).playerId
+            : typeof (payload as any).player === 'string'
+              ? (payload as any).player
+              : typeof (payload as any).id === 'string'
+                ? (payload as any).id
+                : null;
+        if (player) {
+          const pid = String(player).trim().toUpperCase();
+          commandRaw = eventLower === 'kill' ? `${pid}-killed` : `revive-${pid}`;
+        }
+      }
       const parsedCommand = parsePlayerCommand(commandRaw);
       const round       = payload?.round ?? payload?.currentRound ?? prev.currentRound;
       const totalRounds = payload?.total_rounds ?? payload?.totalRounds ?? prev.totalRounds;
