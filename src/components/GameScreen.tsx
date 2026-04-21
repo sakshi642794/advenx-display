@@ -4,12 +4,27 @@ import { StatusDisplay } from './StatusDisplay';
 import { TeamRow } from './TeamRow';
 import ConnectionOverlay from './ConnectionOverlay';
 import { HudBrackets } from './HudBrackets';
+import { OperatorPanel } from './OperatorPanel';
 import { DebugOverlay } from './DebugOverlay';
-import { GameState } from '../types/game';
+import { GameState, OperatorMessage } from '../types/game';
 
-interface GameScreenProps { gameState: GameState; isConnected: boolean; }
+interface GameScreenProps {
+  gameState: GameState;
+  isConnected: boolean;
+  onSend: (msg: OperatorMessage) => void;
+  onAttackersReady: () => void;
+  onDefendersReady: () => void;
+  onReset: () => void;
+}
 
-export const GameScreen: React.FC<GameScreenProps> = ({ gameState, isConnected }) => {
+export const GameScreen: React.FC<GameScreenProps> = ({
+  gameState,
+  isConnected,
+  onSend,
+  onAttackersReady,
+  onDefendersReady,
+  onReset,
+}) => {
   const { phase } = gameState;
   const announcementColor =
     gameState.announcementTone === 'fast' ? 'var(--clr-red)'
@@ -106,6 +121,15 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameState, isConnected }
       <ConnectionOverlay
         isConnected={isConnected}
         backendConnected={gameState.backendConnected}
+      />
+
+      <OperatorPanel
+        gameState={gameState}
+        isConnected={isConnected}
+        onSend={onSend}
+        onAttackersReady={onAttackersReady}
+        onDefendersReady={onDefendersReady}
+        onReset={onReset}
       />
 
       <DebugOverlay isConnected={isConnected} backendConnected={gameState.backendConnected} />
