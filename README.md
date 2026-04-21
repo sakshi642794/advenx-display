@@ -15,14 +15,27 @@ npm install
 ```
 
 ### 2. Configure backend URL
-Copy `.env.example` to `.env` and set your Pi's WebSocket URL:
+Create a `.env` file and point it at the Pi WS Relay (recommended) or the backend (direct):
 ```bash
 cp .env.example .env
 ```
 Edit `.env`:
 ```
+VITE_WS_TARGET=relay
 VITE_WS_URL=ws://<YOUR_PI_IP>:8080
+VITE_ROOM_ID=arena
+VITE_HUD_DEBUG=0
 ```
+Important: the Pi relay must listen on the LAN interface. If your HUD is on another machine, make sure the Pi engine WS server binds to `0.0.0.0` (default) or set `WS_HOST=0.0.0.0` when starting the Pi engine.
+If you want to connect directly to the backend instead:
+```
+VITE_WS_TARGET=backend
+VITE_WS_URL=ws://<YOUR_BACKEND_IP>:8000
+VITE_ROOM_ID=arena
+```
+`VITE_WS_URL` can be either (when using `VITE_WS_TARGET=backend`):
+- A base URL (the UI appends `/ws/<room>` automatically), or
+- The full endpoint (example: `wss://<ngrok-domain>/ws/arena`).
 
 ### 3. Run development server
 ```bash

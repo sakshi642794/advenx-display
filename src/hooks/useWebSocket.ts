@@ -1,7 +1,31 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { WebSocketMessage, OperatorMessage } from '../types/game';
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080';
+const DEFAULT_ROOM_ID = 'arena';
+const DEFAULT_WS_BASE_URL = 'ws://localhost:8080';
+
+type WsTarget = 'relay' | 'backend';
+
+function buildWsUrl(raw: string, roomId: string, target: WsTarget) {
+  const trimmed = raw.trim().replace(/\/+$/, '');
+
+  // If user already provided the full endpoint (includes /ws/<room>), trust it.
+  if (/\/ws\/[^/]+$/i.test(trimmed)) return trimmed;
+
+  // Allow http(s) base URLs in env and convert to ws(s).
+  const normalized = trimmed
+    .replace(/^https:\/\//i, 'wss://')
+    .replace(/^http:\/\//i, 'ws://');
+
+  // Relay is a plain WS server (no path). Backend uses /ws/<room>.
+  if (target === 'backend') return `${normalized}/ws/${roomId}`;
+  return normalized;
+}
+
+const ROOM_ID = import.meta.env.VITE_ROOM_ID || DEFAULT_ROOM_ID;
+const rawTarget = String(import.meta.env.VITE_WS_TARGET || 'relay').toLowerCase();
+const WS_TARGET: WsTarget = rawTarget === 'backend' ? 'backend' : 'relay';
+const WS_URL = buildWsUrl(import.meta.env.VITE_WS_URL || DEFAULT_WS_BASE_URL, ROOM_ID, WS_TARGET);
 const RECONNECT_DELAY_MS = 3000;
 
 interface UseWebSocketOptions {
@@ -38,6 +62,13 @@ export function useWebSocket({ onMessage, onConnect, onDisconnect }: UseWebSocke
       ws.onmessage = (event) => {
         try {
           const data: WebSocketMessage = JSON.parse(event.data);
+          try {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('advenx:ws_message', { detail: data }));
+            }
+          } catch {
+            // ignore (older browsers / custom event restrictions)
+          }
           onMessage(data);
         } catch (err) {
           console.error('[ADVENX] Failed to parse message:', err);

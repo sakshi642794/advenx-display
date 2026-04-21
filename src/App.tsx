@@ -8,9 +8,10 @@ const App: React.FC = () => {
   const {
     gameState, isConnected,
     handleMessage, handleConnect, handleDisconnect,
+    markAttackersReady, markDefendersReady, resetGame,
   } = useGameState();
 
-  useWebSocket({
+  const { send } = useWebSocket({
     onMessage: handleMessage,
     onConnect: handleConnect,
     onDisconnect: handleDisconnect,
@@ -18,7 +19,14 @@ const App: React.FC = () => {
 
   return (
     <>
-      <GameScreen gameState={gameState} isConnected={isConnected} />
+      <GameScreen
+        gameState={gameState}
+        isConnected={isConnected}
+        onSend={send}
+        onAttackersReady={markAttackersReady}
+        onDefendersReady={markDefendersReady}
+        onReset={resetGame}
+      />
     </>
   );
 };

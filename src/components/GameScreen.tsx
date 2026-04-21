@@ -4,6 +4,7 @@ import { StatusDisplay } from './StatusDisplay';
 import { TeamRow } from './TeamRow';
 import ConnectionOverlay from './ConnectionOverlay';
 import { HudBrackets } from './HudBrackets';
+import { DebugOverlay } from './DebugOverlay';
 import { GameState } from '../types/game';
 
 interface GameScreenProps { gameState: GameState; isConnected: boolean; }
@@ -106,6 +107,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ gameState, isConnected }
         isConnected={isConnected}
         backendConnected={gameState.backendConnected}
       />
+
+      <DebugOverlay isConnected={isConnected} backendConnected={gameState.backendConnected} />
     </div>
   );
 };

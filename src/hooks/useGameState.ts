@@ -45,14 +45,11 @@ function deriveScaledEndTime(remainingSeconds: number, speedMultiplier: number, 
 function parsePlayerCommand(raw: string) {
   const s = raw.trim();
 
-  const kill = s.match(/^kill[-_ ]?([ad][1-5])$/i);
-  if (kill) return { kind: 'killed' as const, playerId: kill[1].toUpperCase() };
-
   const killed = s.match(/^([ad][1-5])[-_ ]?killed$/i);
   if (killed) return { kind: 'killed' as const, playerId: killed[1].toUpperCase() };
 
-  const reviveSpaced = s.match(/^revive[-_ ]?([ad][1-5])$/i);
-  if (reviveSpaced) return { kind: 'revive' as const, playerId: reviveSpaced[1].toUpperCase() };
+  const revive = s.match(/^revive-([ad][1-5])$/i);
+  if (revive) return { kind: 'revive' as const, playerId: revive[1].toUpperCase() };
 
   return null;
 }
@@ -152,31 +149,16 @@ export function useGameState() {
 
     setGameState(prev => {
       const now = Date.now() + offsetRef.current;
-      let commandRaw = typeof payload?.command === 'string' ? payload.command : String(event ?? '');
-
-      // Accept {event:"kill"/"revive", payload:{playerId:"A1"}} style commands too.
-      const eventLower = typeof event === 'string' ? event.toLowerCase() : '';
-      if ((eventLower === 'kill' || eventLower === 'revive') && payload && typeof payload === 'object') {
-        const player =
-          typeof (payload as any).playerId === 'string'
-            ? (payload as any).playerId
-            : typeof (payload as any).player === 'string'
-              ? (payload as any).player
-              : typeof (payload as any).id === 'string'
-                ? (payload as any).id
-                : null;
-        if (player) {
-          const pid = String(player).trim().toUpperCase();
-          commandRaw = eventLower === 'kill' ? `${pid}-killed` : `revive-${pid}`;
-        }
-      }
+      const commandRaw = typeof payload?.command === 'string' ? payload.command : String(event ?? '');
       const parsedCommand = parsePlayerCommand(commandRaw);
       const round       = payload?.round ?? payload?.currentRound ?? prev.currentRound;
       const totalRounds = payload?.total_rounds ?? payload?.totalRounds ?? prev.totalRounds;
       const endTime     = payload?.endTime      ?? null;
       const effectiveSpeed = prev.timerSpeedMultiplier || 1;
 
-      const allowPlayerCommands =
+      const allowPlayerCommands = true;
+      const allowAutoWin =
+        prev.phase === 'round_starting' ||
         prev.phase === 'round_active' ||
         prev.phase === 'spike_planting' ||
         prev.phase === 'spike_planted' ||
@@ -189,9 +171,9 @@ export function useGameState() {
           delete reviveFx[parsedCommand.playerId];
 
           // If a full team is eliminated, the other team wins immediately.
-          const attackersDead = teamAllDead(deadPlayers, 'A');
-          const defendersDead = teamAllDead(deadPlayers, 'D');
-          if (attackersDead || defendersDead) {
+          const attackersDead = allowAutoWin ? teamAllDead(deadPlayers, 'A') : false;
+          const defendersDead = allowAutoWin ? teamAllDead(deadPlayers, 'D') : false;
+          if (allowAutoWin && (attackersDead || defendersDead)) {
             const winner = attackersDead ? 'defenders' : 'attackers';
             return {
               ...prev,
@@ -519,8 +501,11 @@ export function useGameState() {
         case 'timer_speed_update': {
           const nextMultiplier = typeof payload?.speedMultiplier === 'number' ? payload.speedMultiplier : prev.timerSpeedMultiplier;
           const nextMode = payload?.effectiveMode ?? prev.timerSpeedMode;
-          const nextAnnouncement = payload?.announcement ?? prev.globalAnnouncement;
-          const announcementTone = nextMode === 'fast' ? 'fast' : nextMode === 'slow' ? 'slow' : 'neutral';
+          const nextAnnouncement = typeof payload?.announcement === 'string' ? payload.announcement : null;
+          const nextTone =
+            nextMode === 'fast' ? 'fast'
+            : nextMode === 'slow' ? 'slow'
+            : 'neutral';
 
           const roundRemaining = prev.endTime !== null
             ? Math.max(0, (prev.endTime - now) / 1000)
@@ -541,9 +526,9 @@ export function useGameState() {
             timerSpeedFastCount: typeof payload?.fastCount === 'number' ? payload.fastCount : prev.timerSpeedFastCount,
             timerSpeedSlowCount: typeof payload?.slowCount === 'number' ? payload.slowCount : prev.timerSpeedSlowCount,
             timerSpeedNextExpiryAt: typeof payload?.nextExpiryAt === 'number' ? payload.nextExpiryAt : null,
-            globalAnnouncement: nextAnnouncement,
-            announcementTone,
-            announcementEndTime: nextAnnouncement ? now + 4500 : null,
+            globalAnnouncement: nextAnnouncement ?? prev.globalAnnouncement,
+            announcementTone: nextAnnouncement ? nextTone : prev.announcementTone,
+            announcementEndTime: nextAnnouncement ? (Date.now() + 6500) : prev.announcementEndTime,
             endTime: prev.phase === 'round_active' && roundRemaining > 0
               ? deriveScaledEndTime(roundRemaining, nextMultiplier, now)
               : prev.endTime,

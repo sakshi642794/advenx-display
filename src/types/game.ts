@@ -28,6 +28,10 @@ export type GameEvent =
 export type OperatorEvent =
   | 'attackers_ready'
   | 'defenders_ready'
+  | 'fast'
+  | 'slow'
+  | 'kill'
+  | 'revive'
   | 'start_game'
   | 'start_plant'
   | 'cancel_plant'
