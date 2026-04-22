@@ -142,7 +142,6 @@ export const EventTimer: React.FC<EventTimerProps> = ({
     const current = isDefuse ? defuseTimer : spikeTimer;
     const progress = Math.max(0, Math.min(1, current / total));
     const isLow = current <= 10;
-    const isMid = !isLow && current <= 20;
     const color = isDefuse ? 'var(--clr-cyan)' : isLow ? 'var(--clr-red)' : 'var(--clr-spike)';
     const rawColor = isDefuse ? '#00d4f0' : isLow ? '#e8392a' : '#ff6a00';
 
