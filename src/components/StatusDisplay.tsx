@@ -109,7 +109,7 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({
                   fontFamily: 'var(--font-hud)', fontSize: '11px', letterSpacing: '4px',
                   color: 'var(--clr-white)', marginTop: '8px', animation: 'blink 1s step-end infinite',
                 }}>
-                  WAITING FOR GAME START...
+                  AUTO STARTING ROUND...
                 </div>
               )}
             </div>
