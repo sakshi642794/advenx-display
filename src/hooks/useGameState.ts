@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { GameState, GamePhase, WebSocketMessage } from '../types/game';
+import { GameState, GamePhase, WebSocketMessage, WebSocketSource } from '../types/game';
 
 const INITIAL_STATE: GameState = {
   phase: 'awaiting',
@@ -42,6 +42,22 @@ function deriveScaledEndTime(remainingSeconds: number, speedMultiplier: number, 
   return now + (remainingSeconds * 1000) / speedMultiplier;
 }
 
+function getPreciseRemainingSeconds(endTime: number | null, speedMultiplier: number, now: number) {
+  if (endTime === null) return 0;
+  return Math.max(0, ((endTime - now) * speedMultiplier) / 1000);
+}
+
+function getDisplayedRemainingSeconds(endTime: number | null, speedMultiplier: number, now: number) {
+  return Math.max(0, Math.floor(getPreciseRemainingSeconds(endTime, speedMultiplier, now)));
+}
+
+function deriveWinnerFromReason(reason: unknown) {
+  if (typeof reason !== 'string') return null;
+  if (reason === 'ATTACKER_WIN_EXPLODE') return 'attackers_win' as const;
+  if (reason === 'DEFENDER_WIN_TIME' || reason === 'DEFENDER_WIN_DEFUSE') return 'defenders_win' as const;
+  return null;
+}
+
 function parsePlayerCommand(raw: string) {
   const s = raw.trim();
 
@@ -52,6 +68,95 @@ function parsePlayerCommand(raw: string) {
   if (revive) return { kind: 'revive' as const, playerId: revive[1].toUpperCase() };
 
   return null;
+}
+
+function normalizePlayerId(raw: unknown) {
+  if (typeof raw !== 'string') return null;
+  const pid = raw.trim().toUpperCase();
+  if (!/^[AD][1-5]$/.test(pid)) return null;
+  return pid;
+}
+
+function normalizeAdminMessage(msg: WebSocketMessage): WebSocketMessage {
+  const event = typeof msg?.event === 'string' ? msg.event.trim() : '';
+  const lowerEvent = event.toLowerCase();
+  const payload = msg?.payload;
+
+  if (lowerEvent === 'kill' || lowerEvent === 'revive') {
+    const playerId = normalizePlayerId(payload?.playerId ?? payload?.player ?? payload?.id);
+    if (!playerId) return msg;
+    return {
+      event: lowerEvent === 'kill' ? `${playerId}-killed` : `revive-${playerId}`,
+      payload,
+    };
+  }
+
+  if (lowerEvent === 'fast' || lowerEvent === 'slow') {
+    const fastCount = lowerEvent === 'fast' ? 1 : 0;
+    const slowCount = lowerEvent === 'slow' ? 1 : 0;
+    return {
+      event: 'timer_speed_update',
+      payload: {
+        ...payload,
+        effectiveMode: lowerEvent,
+        speedMultiplier: lowerEvent === 'fast' ? 2 : 0.5,
+        fastCount: typeof payload?.fastCount === 'number' ? payload.fastCount : fastCount,
+        slowCount: typeof payload?.slowCount === 'number' ? payload.slowCount : slowCount,
+        announcement:
+          typeof payload?.announcement === 'string'
+            ? payload.announcement
+            : lowerEvent === 'fast'
+              ? 'TIME SHIFT ACTIVATED - FAST MODE'
+              : 'TIME SHIFT ACTIVATED - SLOW MODE',
+      },
+    };
+  }
+
+  if (lowerEvent === 'both_teams_ready') {
+    return {
+      event: 'teams_ready',
+      payload: {
+        ...payload,
+        attackersReady: true,
+        defendersReady: true,
+      },
+    };
+  }
+
+  if (lowerEvent === 'no_team_ready') {
+    return {
+      event: 'teams_ready',
+      payload: {
+        ...payload,
+        attackersReady: false,
+        defendersReady: false,
+      },
+    };
+  }
+
+  return msg;
+}
+
+function isAdminControlledMessage(msg: WebSocketMessage) {
+  const event = typeof msg?.event === 'string' ? msg.event.trim().toLowerCase() : '';
+  if (
+    event === 'attackers_ready' ||
+    event === 'defenders_ready' ||
+    event === 'attackers_not_ready' ||
+    event === 'defenders_not_ready' ||
+    event === 'teams_ready' ||
+    event === 'both_teams_ready' ||
+    event === 'no_team_ready' ||
+    event === 'kill' ||
+    event === 'revive' ||
+    event === 'fast' ||
+    event === 'slow' ||
+    event === 'timer_speed_update'
+  ) {
+    return true;
+  }
+
+  return /^([ad][1-5])[-_ ]?killed$/i.test(event) || /^revive-([ad][1-5])$/i.test(event);
 }
 
 function teamAllDead(deadPlayers: Record<string, boolean>, teamPrefix: 'A' | 'D') {
@@ -77,7 +182,7 @@ export function useGameState() {
 
         // Round / defuse countdown
         if (prev.endTime !== null) {
-          const remaining = Math.max(0, Math.floor((prev.endTime - now) / 1000));
+          const remaining = getDisplayedRemainingSeconds(prev.endTime, prev.timerSpeedMultiplier, now);
           if (remaining !== prev.timeRemaining) {
             updated.timeRemaining = remaining;
             changed = true;
@@ -86,7 +191,7 @@ export function useGameState() {
 
         // Spike detonation countdown
         if (prev.spikeEndTime !== null) {
-          const remaining = Math.max(0, Math.floor((prev.spikeEndTime - now) / 1000));
+          const remaining = getDisplayedRemainingSeconds(prev.spikeEndTime, prev.timerSpeedMultiplier, now);
           if (remaining !== prev.spikeTimer) {
             updated.spikeTimer = remaining;
             changed = true;
@@ -144,10 +249,15 @@ export function useGameState() {
     return () => clearInterval(interval);
   }, []); // runs once - interval always reads latest state via setter callback
 
-  const handleMessage = useCallback((msg: WebSocketMessage) => {
+  const handleMessage = useCallback((rawMsg: WebSocketMessage, source: WebSocketSource = 'engine') => {
+    const msg = source === 'admin' ? normalizeAdminMessage(rawMsg) : rawMsg;
     const { event, payload } = msg;
 
     setGameState(prev => {
+      if (source === 'engine' && isAdminControlledMessage(msg)) {
+        return prev;
+      }
+
       const now = Date.now() + offsetRef.current;
       const commandRaw = typeof payload?.command === 'string' ? payload.command : String(event ?? '');
       const parsedCommand = parsePlayerCommand(commandRaw);
@@ -186,7 +296,7 @@ export function useGameState() {
               defuseTimer: 0,
               attackersScore: winner === 'attackers' ? prev.attackersScore + 1 : prev.attackersScore,
               defendersScore: winner === 'defenders' ? prev.defendersScore + 1 : prev.defendersScore,
-              winEndTime: Date.now() + 10000,
+              winEndTime: now + 10000,
               deadPlayers,
               reviveFx,
             };
@@ -240,13 +350,26 @@ export function useGameState() {
             ROUND_ENDED: 'round_over',
           };
 
-          const nextPhase = state && phaseMap[state] ? phaseMap[state] : prev.phase;
-          const nextRoundEndTime = nextPhase === 'round_active' && typeof roundRemaining === 'number'
-            ? deriveScaledEndTime(roundRemaining, effectiveSpeed, now)
-            : null;
-          const nextSpikeEndTime = nextPhase === 'spike_planted' && typeof spikeRemaining === 'number'
-            ? deriveScaledEndTime(spikeRemaining, effectiveSpeed, now)
-            : null;
+          const mappedPhase = state && phaseMap[state] ? phaseMap[state] : prev.phase;
+          const nextPhase =
+            mappedPhase === 'round_over' && (prev.phase === 'attackers_win' || prev.phase === 'defenders_win')
+              ? prev.phase
+              : mappedPhase;
+
+          // Preserve endTime/spikeEndTime if no new remaining value is provided and phase hasn't changed.
+          let nextRoundEndTime = prev.endTime;
+          if (typeof roundRemaining === 'number') {
+            nextRoundEndTime = nextPhase === 'round_active' ? deriveScaledEndTime(roundRemaining, effectiveSpeed, now) : null;
+          } else if (nextPhase !== prev.phase && nextPhase !== 'round_active') {
+            nextRoundEndTime = null;
+          }
+
+          let nextSpikeEndTime = prev.spikeEndTime;
+          if (typeof spikeRemaining === 'number') {
+            nextSpikeEndTime = nextPhase === 'spike_planted' ? deriveScaledEndTime(spikeRemaining, effectiveSpeed, now) : null;
+          } else if (nextPhase !== prev.phase && nextPhase !== 'spike_planted') {
+            nextSpikeEndTime = null;
+          }
 
           return {
             ...prev,
@@ -286,7 +409,7 @@ export function useGameState() {
             ...prev,
             phase: 'round_starting',
             statusMessage: 'ROUND STARTING',
-            roundStartEndTime: endTime ?? (Date.now() + 5000),
+            roundStartEndTime: endTime ?? (now + 5000),
             roundStartRemaining: payload?.seconds ?? 5,
             deadPlayers: {},
             reviveFx: {},
@@ -335,10 +458,10 @@ export function useGameState() {
             ...prev,
             phase: 'round_active',
             statusMessage: 'ROUND IN PROGRESS',
-            // backend should re-send endTime on resume; fall back to prev
+            // Recalculate endTime if not provided in payload (important for resumption after plant/defuse)
             endTime: endTime !== null
               ? deriveScaledEndTime(resumedRemaining, effectiveSpeed, now)
-              : prev.endTime,
+              : deriveScaledEndTime(prev.timeRemaining, effectiveSpeed, now),
           };
           }
 
@@ -380,7 +503,7 @@ export function useGameState() {
             statusMessage: 'SPIKE PLANTED',
             spikeEndTime: endTime !== null
               ? deriveScaledEndTime(resumedSpikeRemaining, effectiveSpeed, now)
-              : prev.spikeEndTime,
+              : deriveScaledEndTime(prev.spikeTimer, effectiveSpeed, now),
             defuseTimer: 0,
           };
           }
@@ -397,6 +520,27 @@ export function useGameState() {
           };
 
         case 'round_end':
+          {
+          const winnerPhase = deriveWinnerFromReason(payload?.reason);
+          if (winnerPhase === 'attackers_win' || winnerPhase === 'defenders_win') {
+            return {
+              ...prev,
+              phase: winnerPhase,
+              statusMessage: winnerPhase === 'attackers_win' ? 'ATTACKERS WIN' : 'DEFENDERS WIN',
+              endTime: null,
+              spikeEndTime: null,
+              roundStartEndTime: null,
+              roundStartRemaining: 0,
+              attackersScore: typeof payload?.attackersScore === 'number' ? payload.attackersScore : prev.attackersScore,
+              defendersScore: typeof payload?.defendersScore === 'number' ? payload.defendersScore : prev.defendersScore,
+              defuseTimer: 0,
+              attackersReady: false,
+              defendersReady: false,
+              winEndTime: prev.winEndTime ?? (now + 10000),
+              deadPlayers: {},
+              reviveFx: {},
+            };
+          }
           return {
             ...prev,
             phase: 'round_over',
@@ -411,6 +555,7 @@ export function useGameState() {
             deadPlayers: {},
             reviveFx: {},
           };
+          }
 
         case 'attackers_win':
           if (prev.phase === 'attackers_win') {
@@ -418,7 +563,7 @@ export function useGameState() {
               ...prev,
               attackersScore: typeof payload?.attackersScore === 'number' ? payload.attackersScore : prev.attackersScore,
               defendersScore: typeof payload?.defendersScore === 'number' ? payload.defendersScore : prev.defendersScore,
-              winEndTime: prev.winEndTime ?? (Date.now() + 10000),
+              winEndTime: prev.winEndTime ?? (now + 10000),
             };
           }
           return {
@@ -434,7 +579,7 @@ export function useGameState() {
             defuseTimer: 0,
             attackersReady: false,
             defendersReady: false,
-            winEndTime: Date.now() + 10000,
+            winEndTime: now + 10000,
             deadPlayers: {},
             reviveFx: {},
           };
@@ -445,7 +590,7 @@ export function useGameState() {
               ...prev,
               attackersScore: typeof payload?.attackersScore === 'number' ? payload.attackersScore : prev.attackersScore,
               defendersScore: typeof payload?.defendersScore === 'number' ? payload.defendersScore : prev.defendersScore,
-              winEndTime: prev.winEndTime ?? (Date.now() + 10000),
+              winEndTime: prev.winEndTime ?? (now + 10000),
             };
           }
           return {
@@ -461,7 +606,7 @@ export function useGameState() {
             defuseTimer: 0,
             attackersReady: false,
             defendersReady: false,
-            winEndTime: Date.now() + 10000,
+            winEndTime: now + 10000,
             deadPlayers: {},
             reviveFx: {},
           };
@@ -508,13 +653,13 @@ export function useGameState() {
             : 'neutral';
 
           const roundRemaining = prev.endTime !== null
-            ? Math.max(0, (prev.endTime - now) / 1000)
+            ? getPreciseRemainingSeconds(prev.endTime, prev.timerSpeedMultiplier, now)
             : prev.phase === 'round_active'
               ? prev.timeRemaining
               : 0;
 
           const spikeRemaining = prev.spikeEndTime !== null
-            ? Math.max(0, (prev.spikeEndTime - now) / 1000)
+            ? getPreciseRemainingSeconds(prev.spikeEndTime, prev.timerSpeedMultiplier, now)
             : prev.phase === 'spike_planted'
               ? prev.spikeTimer
               : 0;
@@ -528,7 +673,13 @@ export function useGameState() {
             timerSpeedNextExpiryAt: typeof payload?.nextExpiryAt === 'number' ? payload.nextExpiryAt : null,
             globalAnnouncement: nextAnnouncement ?? prev.globalAnnouncement,
             announcementTone: nextAnnouncement ? nextTone : prev.announcementTone,
-            announcementEndTime: nextAnnouncement ? (Date.now() + 6500) : prev.announcementEndTime,
+            announcementEndTime: nextAnnouncement ? (now + 6500) : prev.announcementEndTime,
+            timeRemaining: prev.phase === 'round_active' && roundRemaining > 0
+              ? Math.max(0, Math.floor(roundRemaining))
+              : prev.timeRemaining,
+            spikeTimer: prev.phase === 'spike_planted' && spikeRemaining > 0
+              ? Math.max(0, Math.floor(spikeRemaining))
+              : prev.spikeTimer,
             endTime: prev.phase === 'round_active' && roundRemaining > 0
               ? deriveScaledEndTime(roundRemaining, nextMultiplier, now)
               : prev.endTime,
@@ -543,6 +694,14 @@ export function useGameState() {
       }
     });
   }, []);
+
+  const handleEngineMessage = useCallback((msg: WebSocketMessage) => {
+    handleMessage(msg, 'engine');
+  }, [handleMessage]);
+
+  const handleAdminMessage = useCallback((msg: WebSocketMessage) => {
+    handleMessage(msg, 'admin');
+  }, [handleMessage]);
 
   const markAttackersReady = useCallback(() => {
     setGameState(prev => ({ ...prev, attackersReady: true }));
@@ -562,7 +721,7 @@ export function useGameState() {
 
   return {
     gameState, isConnected,
-    handleMessage, handleConnect, handleDisconnect,
+    handleMessage: handleEngineMessage, handleAdminMessage, handleConnect, handleDisconnect,
     markAttackersReady, markDefendersReady, resetGame,
   };
 }

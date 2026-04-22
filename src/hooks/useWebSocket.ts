@@ -2,7 +2,8 @@ import { useEffect, useRef, useCallback } from 'react';
 import { WebSocketMessage, OperatorMessage } from '../types/game';
 
 const DEFAULT_ROOM_ID = 'arena';
-const DEFAULT_WS_BASE_URL = 'ws://localhost:8080';
+const DEFAULT_ENGINE_WS_BASE_URL = 'ws://localhost:8080';
+const DEFAULT_ADMIN_WS_BASE_URL = 'ws://localhost:8000';
 
 type WsTarget = 'relay' | 'backend';
 
@@ -22,40 +23,66 @@ function buildWsUrl(raw: string, roomId: string, target: WsTarget) {
   return normalized;
 }
 
-const ROOM_ID = import.meta.env.VITE_ROOM_ID || DEFAULT_ROOM_ID;
-const rawTarget = String(import.meta.env.VITE_WS_TARGET || 'relay').toLowerCase();
-const WS_TARGET: WsTarget = rawTarget === 'backend' ? 'backend' : 'relay';
-const WS_URL = buildWsUrl(import.meta.env.VITE_WS_URL || DEFAULT_WS_BASE_URL, ROOM_ID, WS_TARGET);
 const RECONNECT_DELAY_MS = 3000;
 
 interface UseWebSocketOptions {
+  url: string;
   onMessage: (msg: WebSocketMessage) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
+  label?: string;
+  canSend?: boolean;
 }
 
-export function useWebSocket({ onMessage, onConnect, onDisconnect }: UseWebSocketOptions) {
+export function getConfiguredWsUrl(kind: 'engine' | 'admin') {
+  const roomId = import.meta.env.VITE_ROOM_ID || DEFAULT_ROOM_ID;
+
+  if (kind === 'admin') {
+    const rawTarget = String(import.meta.env.VITE_ADMIN_WS_TARGET || 'backend').toLowerCase();
+    const target: WsTarget = rawTarget === 'relay' ? 'relay' : 'backend';
+    const rawUrl = import.meta.env.VITE_ADMIN_WS_URL || import.meta.env.VITE_BACKEND_WS_URL || DEFAULT_ADMIN_WS_BASE_URL;
+    return buildWsUrl(rawUrl, roomId, target);
+  }
+
+  const rawTarget = String(import.meta.env.VITE_WS_TARGET || 'relay').toLowerCase();
+  const target: WsTarget = rawTarget === 'backend' ? 'backend' : 'relay';
+  const rawUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_PI_WS_URL || DEFAULT_ENGINE_WS_BASE_URL;
+  return buildWsUrl(rawUrl, roomId, target);
+}
+
+export function useWebSocket({
+  url,
+  onMessage,
+  onConnect,
+  onDisconnect,
+  label = 'ADVENX',
+  canSend = true,
+}: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
 
   const send = useCallback((msg: OperatorMessage) => {
+    if (!canSend) {
+      console.warn(`[${label}] Cannot send - socket is receive-only`);
+      return;
+    }
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(msg));
     } else {
-      console.warn('[ADVENX] Cannot send - WebSocket not open');
+      console.warn(`[${label}] Cannot send - WebSocket not open`);
     }
-  }, []);
+  }, [canSend, label]);
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return;
     try {
-      const ws = new WebSocket(WS_URL);
+      const ws = new WebSocket(url);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('[ADVENX] WebSocket connected to', WS_URL);
+        console.log(`[${label}] WebSocket connected to`, url);
         onConnect?.();
       };
 
@@ -76,7 +103,7 @@ export function useWebSocket({ onMessage, onConnect, onDisconnect }: UseWebSocke
       };
 
       ws.onclose = () => {
-        console.warn('[ADVENX] Disconnected. Reconnecting in', RECONNECT_DELAY_MS, 'ms...');
+        console.warn(`[${label}] Disconnected. Reconnecting in`, RECONNECT_DELAY_MS, 'ms...');
         onDisconnect?.();
         if (mountedRef.current) {
           reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
@@ -84,16 +111,16 @@ export function useWebSocket({ onMessage, onConnect, onDisconnect }: UseWebSocke
       };
 
       ws.onerror = (err) => {
-        console.error('[ADVENX] WebSocket error:', err);
+        console.error(`[${label}] WebSocket error:`, err);
         ws.close();
       };
     } catch (err) {
-      console.error('[ADVENX] Failed to create WebSocket:', err);
+      console.error(`[${label}] Failed to create WebSocket:`, err);
       if (mountedRef.current) {
         reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
       }
     }
-  }, [onMessage, onConnect, onDisconnect]);
+  }, [label, onMessage, onConnect, onDisconnect, url]);
 
   useEffect(() => {
     mountedRef.current = true;

@@ -1,11 +1,11 @@
-# ADVENX Display — Live Arena Screen
+# ADVENX Display - Live Arena Screen
 
-A real-time display screen for the ADVENX tactical game. Built with React + TypeScript + Vite.
+A real-time display screen for the ADVENX tactical game, built with React, TypeScript, and Vite.
 
 ## Tech Stack
 - **React 18** + **TypeScript**
-- **Vite** (dev server + bundler)
-- **WebSocket** — connects to Raspberry Pi backend
+- **Vite** for development and bundling
+- **Dual WebSocket connections** for Pi-engine game state and direct admin commands
 
 ## Getting Started
 
@@ -14,28 +14,20 @@ A real-time display screen for the ADVENX tactical game. Built with React + Type
 npm install
 ```
 
-### 2. Configure backend URL
-Create a `.env` file and point it at the Pi WS Relay (recommended) or the backend (direct):
+### 2. Configure websocket URLs
+Copy `.env.example` to `.env` and set both websocket endpoints:
 ```bash
 cp .env.example .env
 ```
+
 Edit `.env`:
-```
-VITE_WS_TARGET=relay
+```env
 VITE_WS_URL=ws://<YOUR_PI_IP>:8080
-VITE_ROOM_ID=arena
-VITE_HUD_DEBUG=0
+VITE_ADMIN_WS_URL=ws://<YOUR_ADMIN_BACKEND_IP>:8000
 ```
-Important: the Pi relay must listen on the LAN interface. If your HUD is on another machine, make sure the Pi engine WS server binds to `0.0.0.0` (default) or set `WS_HOST=0.0.0.0` when starting the Pi engine.
-If you want to connect directly to the backend instead:
-```
-VITE_WS_TARGET=backend
-VITE_WS_URL=ws://<YOUR_BACKEND_IP>:8000
-VITE_ROOM_ID=arena
-```
-`VITE_WS_URL` can be either (when using `VITE_WS_TARGET=backend`):
-- A base URL (the UI appends `/ws/<room>` automatically), or
-- The full endpoint (example: `wss://<ngrok-domain>/ws/arena`).
+
+`VITE_WS_URL` is the Pi relay/game-state socket.
+`VITE_ADMIN_WS_URL` is the admin/backend socket that sends ready and ability commands directly to the display.
 
 ### 3. Run development server
 ```bash
@@ -50,7 +42,12 @@ npm run preview
 
 ## WebSocket Events
 
-The UI reacts to the following events from the backend:
+The display listens on two sockets:
+
+- Pi relay: round/game-state updates and local operator sends
+- Admin backend: ready state and direct ability commands
+
+Supported inbound events include:
 
 | Event | Description |
 |-------|-------------|
@@ -61,10 +58,16 @@ The UI reacts to the following events from the backend:
 | `spike_planted` | Spike is planted, countdown begins |
 | `defuse_start` | Defender is defusing |
 | `defuse_canceled` | Defuse interrupted |
-| `defuse_success` | Spike defused — defenders win |
+| `defuse_success` | Spike defused - defenders win |
 | `round_end` | Round has ended |
 | `attackers_win` | Attackers win the round |
 | `defenders_win` | Defenders win the round |
+| `attackers_ready` / `defenders_ready` | Team ready state from admin |
+| `attackers_not_ready` / `defenders_not_ready` | Team ready reset from admin |
+| `teams_ready` | Combined ready snapshot from admin |
+| `kill` / `revive` | Admin command aliases with `payload.playerId` |
+| `A1-killed` / `revive-A1` | Concrete player command broadcasts |
+| `fast` / `slow` / `timer_speed_update` | Time-shift ability updates |
 
 ### Expected message format
 ```json
@@ -77,32 +80,22 @@ The UI reacts to the following events from the backend:
   }
 }
 ```
-`payload` fields are all optional — the UI has sensible defaults.
+
+`payload` fields are optional, and the UI falls back to the current state when a field is omitted.
 
 ## Project Structure
-```
+```text
 advenx-display/
-├── src/
-│   ├── components/
-│   │   ├── GameScreen.tsx       # Root layout
-│   │   ├── Header.tsx           # Top bar (logo, round, live)
-│   │   ├── StatusDisplay.tsx    # Main center area
-│   │   ├── TimerDisplay.tsx     # Countdown timer
-│   │   ├── TeamRow.tsx          # Player cards row
-│   │   ├── PlayerCard.tsx       # Individual player card
-│   │   └── ConnectionOverlay.tsx
-│   ├── hooks/
-│   │   ├── useWebSocket.ts      # WebSocket + auto-reconnect
-│   │   └── useGameState.ts      # Game logic + timers
-│   ├── types/
-│   │   └── game.ts              # TypeScript types
-│   ├── styles/
-│   │   └── globals.css          # CSS variables, animations
-│   ├── App.tsx
-│   └── main.tsx
-├── .env.example
-├── index.html
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
+|-- src/
+|   |-- components/
+|   |-- hooks/
+|   |-- types/
+|   |-- styles/
+|   |-- App.tsx
+|   `-- main.tsx
+|-- .env.example
+|-- index.html
+|-- package.json
+|-- tsconfig.json
+`-- vite.config.ts
 ```

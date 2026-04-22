@@ -11,6 +11,7 @@ import { GameState, OperatorMessage } from '../types/game';
 interface GameScreenProps {
   gameState: GameState;
   isConnected: boolean;
+  isAdminConnected: boolean;
   onSend: (msg: OperatorMessage) => void;
   onAttackersReady: () => void;
   onDefendersReady: () => void;
@@ -20,6 +21,7 @@ interface GameScreenProps {
 export const GameScreen: React.FC<GameScreenProps> = ({
   gameState,
   isConnected,
+  isAdminConnected,
   onSend,
   onAttackersReady,
   onDefendersReady,
@@ -120,7 +122,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
 
       <ConnectionOverlay
         isConnected={isConnected}
-        backendConnected={gameState.backendConnected}
+        backendConnected={isAdminConnected}
       />
 
       <OperatorPanel
@@ -132,7 +134,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         onReset={onReset}
       />
 
-      <DebugOverlay isConnected={isConnected} backendConnected={gameState.backendConnected} />
+      <DebugOverlay isConnected={isConnected} backendConnected={isAdminConnected} />
     </div>
   );
 };

@@ -84,8 +84,13 @@ export interface WebSocketMessage {
     durationSeconds?: number;
     announcement?: string;
     reason?: 'activated' | 'expired' | 'reset';
+    playerId?: string;
+    player?: string;
+    id?: string;
   };
 }
+
+export type WebSocketSource = 'engine' | 'admin';
 
 export interface OperatorMessage {
   event: OperatorEvent;

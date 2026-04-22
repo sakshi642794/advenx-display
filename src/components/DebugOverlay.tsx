@@ -34,10 +34,12 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({ isConnected, backend
   }, [enabled]);
 
   const envSummary = useMemo(() => {
-    const target = String(import.meta.env.VITE_WS_TARGET || 'relay');
-    const url = String(import.meta.env.VITE_WS_URL || '');
+    const engineTarget = String(import.meta.env.VITE_WS_TARGET || 'relay');
+    const engineUrl = String(import.meta.env.VITE_WS_URL || import.meta.env.VITE_PI_WS_URL || '');
+    const adminTarget = String(import.meta.env.VITE_ADMIN_WS_TARGET || 'backend');
+    const adminUrl = String(import.meta.env.VITE_ADMIN_WS_URL || import.meta.env.VITE_BACKEND_WS_URL || '');
     const room = String(import.meta.env.VITE_ROOM_ID || 'arena');
-    return { target, url, room };
+    return { engineTarget, engineUrl, adminTarget, adminUrl, room };
   }, []);
 
   if (!enabled) return null;
@@ -65,8 +67,10 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({ isConnected, backend
       }}
     >
       <div>ws: {isConnected ? 'connected' : 'disconnected'} | backend: {backendConnected ? 'ok' : 'down'}</div>
-      <div>target={envSummary.target} room={envSummary.room}</div>
-      <div>url={envSummary.url || '(default)'}</div>
+      <div>engineTarget={envSummary.engineTarget} room={envSummary.room}</div>
+      <div>engineUrl={envSummary.engineUrl || '(default)'}</div>
+      <div>adminTarget={envSummary.adminTarget}</div>
+      <div>adminUrl={envSummary.adminUrl || '(default)'}</div>
       <div>
         last={lastMsg?.event || '(none)'} {lastAt ? `@ ${formatMs(lastAt)}` : ''}
       </div>
