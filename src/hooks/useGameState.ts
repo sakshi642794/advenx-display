@@ -355,17 +355,27 @@ export function useGameState() {
             mappedPhase === 'round_over' && (prev.phase === 'attackers_win' || prev.phase === 'defenders_win')
               ? prev.phase
               : mappedPhase;
+          const keepLocalRoundTimer =
+            prev.timerSpeedMode !== 'normal' &&
+            prev.phase === 'round_active' &&
+            nextPhase === 'round_active' &&
+            prev.endTime !== null;
+          const keepLocalSpikeTimer =
+            prev.timerSpeedMode !== 'normal' &&
+            prev.phase === 'spike_planted' &&
+            nextPhase === 'spike_planted' &&
+            prev.spikeEndTime !== null;
 
           // Preserve endTime/spikeEndTime if no new remaining value is provided and phase hasn't changed.
           let nextRoundEndTime = prev.endTime;
-          if (typeof roundRemaining === 'number') {
+          if (typeof roundRemaining === 'number' && !keepLocalRoundTimer) {
             nextRoundEndTime = nextPhase === 'round_active' ? deriveScaledEndTime(roundRemaining, effectiveSpeed, now) : null;
           } else if (nextPhase !== prev.phase && nextPhase !== 'round_active') {
             nextRoundEndTime = null;
           }
 
           let nextSpikeEndTime = prev.spikeEndTime;
-          if (typeof spikeRemaining === 'number') {
+          if (typeof spikeRemaining === 'number' && !keepLocalSpikeTimer) {
             nextSpikeEndTime = nextPhase === 'spike_planted' ? deriveScaledEndTime(spikeRemaining, effectiveSpeed, now) : null;
           } else if (nextPhase !== prev.phase && nextPhase !== 'spike_planted') {
             nextSpikeEndTime = null;
@@ -376,9 +386,15 @@ export function useGameState() {
             phase: nextPhase,
             currentRound: round,
             totalRounds,
-            timeRemaining: typeof roundRemaining === 'number' ? roundRemaining : prev.timeRemaining,
+            timeRemaining:
+              typeof roundRemaining === 'number' && !keepLocalRoundTimer
+                ? roundRemaining
+                : prev.timeRemaining,
             plantTimer: typeof plantRemaining === 'number' ? plantRemaining : prev.plantTimer,
-            spikeTimer: typeof spikeRemaining === 'number' ? spikeRemaining : prev.spikeTimer,
+            spikeTimer:
+              typeof spikeRemaining === 'number' && !keepLocalSpikeTimer
+                ? spikeRemaining
+                : prev.spikeTimer,
             defuseTimer: typeof defuseRemaining === 'number' ? defuseRemaining : prev.defuseTimer,
             endTime: nextRoundEndTime,
             spikeEndTime: nextSpikeEndTime,

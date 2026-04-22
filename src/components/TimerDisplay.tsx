@@ -37,6 +37,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({ phase, timeRemaining
         color: 'rgba(240,240,240,0.35)',
         letterSpacing: '3px',
         lineHeight: 1,
+        fontVariantNumeric: 'tabular-nums',
         transition: 'color 0.5s ease',
       }}>
         {fmt(timeRemaining)}
@@ -52,6 +53,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({ phase, timeRemaining
       textShadow: `0 0 30px ${glowColor}, 0 0 60px ${glowColor}`,
       letterSpacing: 'clamp(4px, 1vw, 10px)',
       lineHeight: 1,
+      fontVariantNumeric: 'tabular-nums',
       animation: isLow ? 'timerGlitch 0.8s infinite' : 'none',
       transition: 'color 0.5s ease, text-shadow 0.5s ease, font-size 0.4s ease',
     }}>

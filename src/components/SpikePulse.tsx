@@ -6,7 +6,7 @@ interface SpikePulseProps {
 }
 
 export const SpikePulse: React.FC<SpikePulseProps> = ({ size = 96, opacity = 0.55 }) => {
-  const iconSize = size * 0.58;
+  const coreSize = size * 0.52;
 
   return (
     <div
@@ -23,36 +23,31 @@ export const SpikePulse: React.FC<SpikePulseProps> = ({ size = 96, opacity = 0.5
         opacity,
       }}
     >
-      {[0, 1, 2].map(i => (
+      {[0, 1].map(i => (
         <div
           key={i}
           style={{
             position: 'absolute',
-            inset: 0,
+            inset: `${10 + i * 10}px`,
             borderRadius: '50%',
-            border: '2px solid rgba(255,106,0,0.55)',
-            animation: `ringExpand 1.8s ease-out ${i * 0.6}s infinite`,
-            opacity: 0,
+            border: '1px solid rgba(255,106,0,0.28)',
+            boxShadow: '0 0 10px rgba(255,106,0,0.16)',
+            animation: `pulseRed 1.6s ${i * 0.2}s infinite`,
+            opacity: 0.5 - i * 0.15,
           }}
         />
       ))}
 
       <div
         style={{
-          width: `${iconSize}px`,
-          height: `${iconSize}px`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          width: `${coreSize}px`,
+          height: `${coreSize}px`,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,106,0,0.26) 0%, rgba(255,106,0,0.08) 55%, transparent 72%)',
+          boxShadow: '0 0 24px rgba(255,106,0,0.18)',
           animation: 'spikeBeep 1s ease-in-out infinite',
         }}
-      >
-        <svg width={iconSize} height={iconSize} viewBox="0 0 80 80">
-          <polygon points="40,8 62,20 62,44 40,56 18,44 18,20" fill="rgba(255,106,0,0.12)" stroke="#e09762" strokeWidth="1.5" />
-          <polygon points="40,18 53,25 53,39 40,46 27,39 27,25" fill="rgba(255,106,0,0.2)" stroke="#e09762" strokeWidth="1" />
-          <circle cx="40" cy="32" r="6" fill="#e09762" style={{ filter: 'drop-shadow(0 0 6px #e09762)' }} />
-        </svg>
-      </div>
+      />
     </div>
   );
 };
