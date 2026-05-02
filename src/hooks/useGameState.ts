@@ -51,6 +51,48 @@ function getDisplayedRemainingSeconds(endTime: number | null, speedMultiplier: n
   return Math.max(0, Math.floor(getPreciseRemainingSeconds(endTime, speedMultiplier, now)));
 }
 
+function resolveLocalTimerExpiry(state: GameState, now: number): GameState | null {
+  if (state.phase === 'round_active' && state.endTime !== null) {
+    return {
+      ...state,
+      phase: 'defenders_win',
+      statusMessage: 'DEFENDERS WIN',
+      timeRemaining: 0,
+      endTime: null,
+      spikeEndTime: null,
+      roundStartEndTime: null,
+      roundStartRemaining: 0,
+      defuseTimer: 0,
+      attackersReady: false,
+      defendersReady: false,
+      winEndTime: state.winEndTime ?? (now + 10000),
+      deadPlayers: {},
+      reviveFx: {},
+    };
+  }
+
+  if (state.phase === 'spike_planted' && state.spikeEndTime !== null) {
+    return {
+      ...state,
+      phase: 'attackers_win',
+      statusMessage: 'ATTACKERS WIN',
+      spikeTimer: 0,
+      endTime: null,
+      spikeEndTime: null,
+      roundStartEndTime: null,
+      roundStartRemaining: 0,
+      defuseTimer: 0,
+      attackersReady: false,
+      defendersReady: false,
+      winEndTime: state.winEndTime ?? (now + 10000),
+      deadPlayers: {},
+      reviveFx: {},
+    };
+  }
+
+  return null;
+}
+
 function deriveWinnerFromReason(reason: unknown) {
   if (typeof reason !== 'string') return null;
   if (reason === 'ATTACKER_WIN_EXPLODE') return 'attackers_win' as const;
@@ -196,6 +238,11 @@ export function useGameState() {
             updated.spikeTimer = remaining;
             changed = true;
           }
+        }
+
+        const expiredState = resolveLocalTimerExpiry(updated, now);
+        if (expiredState) {
+          return expiredState;
         }
 
         // Round start countdown

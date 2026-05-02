@@ -35,7 +35,7 @@ const ConnectionOverlay: React.FC<ConnectionOverlayProps> = ({ isConnected, back
         letterSpacing: '3px',
         color: 'var(--clr-grey)',
       }}>
-        {isConnected ? 'WAITING FOR ADMIN WS...' : 'CONNECTING TO PI WS...'}
+        {isConnected ? 'WAITING FOR ADMIN...' : 'CONNECTING TO PI-ENGINE...'}
       </span>
     </div>
   );
